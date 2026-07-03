@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: catastro_db
+    environment:
+      - POSTGRES_USER=rodrigo
+      - POSTGRES_PASSWORD=catastro2026
+      - POSTGRES_DB=catastro_li
+    ports:
+      - "5477:5432"  
+    volumes:
+      - ./data_li:/var/lib/postgresql/data 
+    restart: unless-stopped
+
+  web:
+    build: .
+    container_name: catastro_api
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8010:8000"
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql://rodrigo:catastro2026@db:5432/catastro_li
+    depends_on:
+      - db
+    restart: unless-stopped
