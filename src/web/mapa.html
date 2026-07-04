@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="css/styles.css?v=2.15" />
+    <link rel="stylesheet" href="css/styles.css?v=2.21" />
 </head>
 <body class="map-body">
 
@@ -139,12 +139,10 @@
         </button>
         
         <!-- Modo de Depuración Visual (Ejecución Interna) -->
-        <label class="cyber-switch" style="display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-family); font-size: 0.65rem; color: #a5b4fc; cursor: pointer; user-select: none; margin-left: 0.4rem;" title="Activar Simulación de Búsqueda R-Tree en Mapa">
-            <input type="checkbox" id="debug-mode-checkbox" style="display: none;">
-            <span class="switch-visual" style="width: 24px; height: 12px; border: 1px solid rgba(129, 140, 248, 0.4); background: rgba(11, 15, 25, 0.6); display: inline-block; position: relative; transition: all 0.2s ease;">
-                <span class="switch-knob" style="width: 6px; height: 6px; background: rgba(129, 140, 248, 0.6); position: absolute; top: 2px; left: 2px; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);"></span>
-            </span>
-            <span style="font-size: 0.6rem;">[ ] debug</span>
+        <label class="cyber-toggle" style="user-select: none; margin-left: 0.4rem;" title="Activar Simulación de Búsqueda R-Tree en Mapa">
+            <input type="checkbox" id="debug-mode-checkbox">
+            <span class="cyber-toggle-slider"></span>
+            <span class="cyber-toggle-label" style="font-size: 0.72rem;">debug</span>
         </label>
         
         <!-- HUD de Rendimiento del R-Tree en ms -->
@@ -201,6 +199,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="js/map.js?v=2.10"></script>
+    <script src="js/map.js?v=2.11"></script>
 </body>
 </html>

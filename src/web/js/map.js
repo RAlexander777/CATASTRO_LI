@@ -395,6 +395,17 @@ async function cargarLotesPorViewport() {
     }
 }
 
+// Normalizar nombres de ciudades provenientes de la base de datos para encajar con el selector del visor
+function normalizarNombreCiudad(ciudad) {
+    if (!ciudad) return "";
+    let s = ciudad.toLowerCase();
+    s = s.split('(')[0].trim();
+    s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    s = s.replace(/\s+/g, "");
+    if (s === "ciudaddemexico") return "cdmx";
+    return s;
+}
+
 // Inicializar el visor enfocando la extensión general de datos o coordenadas de búsqueda
 async function inicializarVisor() {
     const infoMsg = document.getElementById("info-msg");
@@ -405,9 +416,19 @@ async function inicializarVisor() {
     const urlLon = parseFloat(urlParams.get("lon"));
     const urlZoom = parseInt(urlParams.get("zoom")) || 17;
     const urlId = urlParams.get("id");
+    const urlCiudad = urlParams.get("ciudad");
     
     if (urlId) {
         highlightLoteId = urlId;
+    }
+    
+    // Sincronizar el selector de la UI con la ciudad de la URL si se especifica
+    const citySelector = document.getElementById("city-selector");
+    if (urlCiudad && citySelector) {
+        const normalized = normalizarNombreCiudad(urlCiudad);
+        if (normalized) {
+            citySelector.value = normalized;
+        }
     }
     
     // Si se especifican coordenadas en la URL, enfocar directamente
@@ -421,9 +442,8 @@ async function inicializarVisor() {
     // Por defecto, posicionar la cámara en Puno Centro (SRID 32719 zona de interés)
     map.setView([-15.8402, -70.0219], 16);
     
-    // Asegurar que el selector de la UI esté sincronizado con Puno
-    const citySelector = document.getElementById("city-selector");
-    if (citySelector) {
+    // Asegurar que el selector de la UI esté sincronizado con Puno por defecto si no venía en la URL
+    if (!urlCiudad && citySelector) {
         citySelector.value = "puno";
     }
     

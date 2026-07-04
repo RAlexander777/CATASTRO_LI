@@ -780,17 +780,18 @@ h1 {
 .search-container-minimal {
     display: flex;
     align-items: center;
-    background: #0b0f19; /* Fondo oscuro sólido */
-    border: 1px solid rgba(129, 140, 248, 0.35); /* Borde de AutoCAD sólido */
+    background: #090d16; /* Fondo oscuro AutoCAD */
+    border: 1.5px solid rgba(129, 140, 248, 0.5); /* Borde AutoCAD más visible */
     border-radius: 0px;
     padding: 2px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65);
 }
 
 .search-container-minimal.expanded {
-    background: #0b0f19;
-    border-color: rgba(129, 140, 248, 0.6);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    background: #090d16;
+    border-color: #818cf8; /* Borde activo brillante */
+    box-shadow: 0 0 12px rgba(129, 140, 248, 0.4), 0 6px 20px rgba(0, 0, 0, 0.7);
 }
 
 .search-input-minimal {
@@ -801,37 +802,39 @@ h1 {
     outline: none;
     color: #fff;
     font-family: var(--font-family);
-    font-size: 0.85rem;
+    font-size: 1.05rem;
     padding: 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .search-container-minimal.expanded .search-input-minimal {
-    width: 190px;
+    width: 240px;
     opacity: 1;
     padding: 0 0.8rem;
 }
 
 .btn-action-minimal {
-    width: 38px;
-    height: 38px;
+    width: 44px;
+    height: 44px;
     border-radius: 0px;
-    background: #0b0f19; /* Fondo oscuro sólido */
-    border: 1px solid rgba(129, 140, 248, 0.35); /* Borde de AutoCAD sólido */
-    color: var(--text-muted);
+    background: #090d16; /* Fondo ultra oscuro sólido */
+    border: 1.5px solid rgba(129, 140, 248, 0.5); /* Borde de AutoCAD más grueso y visible */
+    color: #a5b4fc; /* Texto y SVG más brillantes por defecto */
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.22s ease;
     padding: 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65); /* Sombra pesada para despegar del mapa */
 }
 
 .btn-action-minimal:hover {
     color: #fff;
-    background: #1e293b; /* Sólido en hover */
-    border-color: rgba(129, 140, 248, 0.6);
-    transform: translateY(-1px);
+    background: #0f172a; /* Fondo sólido oscuro */
+    border-color: #818cf8; /* Borde brillante activo */
+    transform: translateY(-2px);
+    box-shadow: 0 0 12px rgba(129, 140, 248, 0.4), 0 6px 20px rgba(0, 0, 0, 0.7); /* Brillo neón de separación */
 }
 
 .btn-action-minimal:active {
@@ -871,14 +874,14 @@ h1 {
 }
 
 .minimal-id {
-    font-size: 1.15rem;
-    font-weight: 600;
+    font-size: 1.45rem;
+    font-weight: 650;
     color: #f1f5f9;
     letter-spacing: 0.5px;
 }
 
 .minimal-sub-info {
-    font-size: 0.85rem;
+    font-size: 1.05rem;
     color: var(--text-muted);
     letter-spacing: 0.2px;
 }
@@ -888,7 +891,7 @@ h1 {
 }
 
 .minimal-meta-info {
-    font-size: 0.76rem;
+    font-size: 0.92rem;
     color: var(--text-muted);
     opacity: 0.85;
 }
@@ -900,6 +903,7 @@ h1 {
 .minimal-time-tag {
     color: #a7f3d0;
     margin-left: 0.4rem;
+    font-weight: 600;
 }
 
 
@@ -1286,28 +1290,31 @@ optgroup { background: #0d1117; color: #64748b; }
     gap: 0.4rem;
 }
 .style-btn {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(9, 13, 22, 0.7);
+    border: 1.5px solid rgba(129, 140, 248, 0.25);
     color: var(--text-muted);
     border-radius: 0px;
-    padding: 0.35rem 0.4rem;
+    padding: 0.58rem 0.7rem;
     font-family: var(--font-family);
-    font-size: 0.75rem;
+    font-size: 0.92rem;
     cursor: pointer;
     transition: all 0.18s ease;
     text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 .style-btn:hover {
-    border-color: rgba(129,140,248,0.3);
-    color: #a5b4fc;
-    background: rgba(129,140,248,0.07);
+    border-color: #818cf8;
+    color: #ffffff;
+    background: rgba(129, 140, 248, 0.12);
+    box-shadow: 0 0 8px rgba(129, 140, 248, 0.3), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 .style-btn.active {
-    border-color: rgba(129, 140, 248, 0.85);
-    color: #818cf8;
-    background: rgba(129, 140, 248, 0.14);
-    box-shadow: inset 2.5px 0 0 #818cf8; /* Barra de luz de neón al borde izquierdo */
+    border-color: #818cf8;
+    color: #ffffff;
+    background: rgba(129, 140, 248, 0.22);
+    box-shadow: inset 3.5px 0 0 #818cf8, 0 0 10px rgba(129, 140, 248, 0.25); /* Barra de luz de neón al borde izquierdo */
     position: relative;
+    font-weight: 600;
 }
 
 /* Color pickers */
@@ -1445,7 +1452,7 @@ optgroup { background: #0d1117; color: #64748b; }
 
 .dashboard-card h3, .dashboard-card h4 {
     margin: 0;
-    font-size: 0.95rem;
+    font-size: 1.15rem;
     font-weight: 600;
     color: #f1f5f9;
     display: flex;
@@ -1457,7 +1464,7 @@ optgroup { background: #0d1117; color: #64748b; }
 
 .dashboard-card p {
     margin: 0;
-    font-size: 0.82rem;
+    font-size: 0.96rem;
     line-height: 1.55;
     color: var(--text-muted);
 }
@@ -2002,9 +2009,9 @@ optgroup { background: #0d1117; color: #64748b; }
     border: 1px solid rgba(129, 140, 248, 0.2);
     color: var(--text-muted);
     font-family: var(--font-family);
-    font-size: 0.72rem;
+    font-size: 0.92rem;
     font-weight: 500;
-    padding: 0.5rem 1.2rem;
+    padding: 0.65rem 1.4rem;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     text-transform: lowercase;
@@ -2743,12 +2750,163 @@ optgroup { background: #0d1117; color: #64748b; }
     max-width: 400px;
     opacity: 1;
     overflow: hidden;
+    margin-left: 2rem; /* Separación horizontal side-by-side */
 }
 .metadata-panel-collapsible.collapsed {
     max-width: 0 !important;
     opacity: 0 !important;
-    margin: 0 !important;
+    margin-left: 0 !important; /* Desaparece el margen al colapsar para centrar el lote */
     padding: 0 !important;
     pointer-events: none;
+}
+
+/* Efecto de Brillo de Atención Inicial al Cargar */
+@keyframes initial-glow-pulse {
+    0% {
+        box-shadow: 0 0 0 rgba(129, 140, 248, 0);
+        border-color: rgba(129, 140, 248, 0.2);
+    }
+    30% {
+        box-shadow: 0 0 12px rgba(129, 140, 248, 0.6);
+        border-color: rgba(129, 140, 248, 0.8);
+        transform: scale(1.05);
+    }
+    70% {
+        box-shadow: 0 0 12px rgba(129, 140, 248, 0.6);
+        border-color: rgba(129, 140, 248, 0.8);
+        transform: scale(1.05);
+    }
+    100% {
+        box-shadow: 0 0 0 rgba(129, 140, 248, 0);
+        border-color: rgba(129, 140, 248, 0.2);
+        transform: scale(1);
+    }
+}
+
+@keyframes initial-glow-pulse-purple {
+    0% {
+        box-shadow: 0 0 0 rgba(168, 85, 247, 0);
+        border-color: rgba(168, 85, 247, 0.2);
+    }
+    30% {
+        box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+        border-color: rgba(168, 85, 247, 0.8);
+        transform: scale(1.05);
+    }
+    70% {
+        box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+        border-color: rgba(168, 85, 247, 0.8);
+        transform: scale(1.05);
+    }
+    100% {
+        box-shadow: 0 0 0 rgba(168, 85, 247, 0);
+        border-color: rgba(168, 85, 247, 0.2);
+        transform: scale(1);
+    }
+}
+
+.load-glow-attention {
+    animation: initial-glow-pulse 2s ease-in-out 1s;
+}
+
+.load-glow-attention-purple {
+    animation: initial-glow-pulse-purple 2s ease-in-out 1s;
+}
+
+/* Estilos para el nuevo Cyber Toggle Switch (Modo Debug) */
+.cyber-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    cursor: pointer;
+    font-family: var(--font-family);
+    font-size: 0.82rem;
+    color: #a5b4fc;
+    text-transform: lowercase;
+}
+
+.cyber-toggle input {
+    display: none;
+}
+
+.cyber-toggle-slider {
+    position: relative;
+    width: 42px;
+    height: 20px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1.5px solid rgba(129, 140, 248, 0.35);
+    border-radius: 0px; /* Square visual style */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.cyber-toggle-slider::before {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    left: 3.5px;
+    bottom: 2.5px;
+    background: rgba(129, 140, 248, 0.6);
+    border-radius: 0px; /* Square visual knob */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 2px rgba(129, 140, 248, 0.5);
+}
+
+.cyber-toggle input:checked + .cyber-toggle-slider {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: #818cf8;
+    box-shadow: 0 0 8px rgba(129, 140, 248, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.cyber-toggle input:checked + .cyber-toggle-slider::before {
+    transform: translateX(21px);
+    background: #818cf8;
+    box-shadow: 0 0 8px #818cf8;
+}
+
+.cyber-toggle:hover .cyber-toggle-slider {
+    border-color: rgba(129, 140, 248, 0.8);
+    box-shadow: 0 0 6px rgba(129, 140, 248, 0.2);
+}
+
+/* Custom premium AutoCAD-style overrides for Leaflet Zoom Controls */
+.leaflet-control-zoom {
+    border: 1.5px solid rgba(129, 140, 248, 0.4) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 0px !important;
+    overflow: hidden;
+}
+
+.leaflet-control-zoom a {
+    background-color: #090d16 !important;
+    color: #a5b4fc !important;
+    width: 42px !important;
+    height: 42px !important;
+    line-height: 42px !important;
+    font-size: 1.25rem !important;
+    border: none !important;
+    border-bottom: 1.5px solid rgba(129, 140, 248, 0.2) !important;
+    font-family: var(--font-family) !important;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.leaflet-control-zoom a:last-child {
+    border-bottom: none !important;
+}
+
+.leaflet-control-zoom a:hover {
+    background-color: rgba(129, 140, 248, 0.15) !important;
+    color: #ffffff !important;
+    box-shadow: inset 0 0 10px rgba(129, 140, 248, 0.3) !important;
+}
+
+.leaflet-control-zoom a.leaflet-disabled {
+    background-color: #07090e !important;
+    color: rgba(129, 140, 248, 0.2) !important;
+    cursor: not-allowed !important;
 }
 

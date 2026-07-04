@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.17">
+    <link rel="stylesheet" href="css/styles.css?v=2.21">
 </head>
 
 <body>
@@ -23,51 +23,45 @@
     <!-- Contenedor Principal -->
     <div class="intro-container">
 
-        <!-- Header Minimalista -->
-        <!-- Header Minimalista Centrado con Logo Grande -->
+        <!-- Header Minimalista Centrado con Logo Compacto -->
         <header class="main-header"
-            style="flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 1.2rem; border-bottom: 1px dashed rgba(129, 140, 248, 0.15); padding-bottom: 1.5rem; margin-bottom: 2rem; width: 100%;">
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.8rem; width: 100%;">
+            style="flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 0.6rem; border-bottom: 1px dashed rgba(129, 140, 248, 0.15); padding-bottom: 0.8rem; margin-bottom: 1.2rem; width: 100%; display: flex;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; width: 100%;">
                 <img src="assets/LI_solo.png" alt="Catastro LI Logo"
-                    style="height: 110px; width: auto; object-fit: contain;" />
-                <h1
-                    style="margin: 0; font-size: 2.8rem; background: linear-gradient(135deg, #ffffff 30%, var(--primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                    CATASTRO_LI <span class="brand-coord" style="font-size: 0.85rem; vertical-align: middle;">[ 19S /
-                        UTM ]</span></h1>
-                <div class="subtitle"
-                    style="font-size: 1.1rem; margin-top: 0.2rem; text-align: center; width: 100%; justify-content: center;">
-                    > ecosistema híbrido de analítica espacial y learned indexes</div>
-            </div>
-
-            <!-- Botones de Ingreso e Información -->
-            <div class="header-buttons"
-                style="display: flex; gap: 0.8rem; justify-content: center; align-items: center; margin-top: 0.2rem; width: 100%;">
-                <a href="/visor" class="btn-enter-hero-compact" title="Ingresar al Visor Cartográfico Proyectado">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-                        <line x1="8" y1="2" x2="8" y2="18"></line>
-                        <line x1="16" y1="6" x2="16" y2="22"></line>
-                    </svg>
-                    <span>ingresar_visor</span>
-                </a>
-                <button type="button" class="btn-enter-hero-compact" onclick="toggleWikiDrawer(true)"
-                    style="background: rgba(99, 102, 241, 0.12); border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc; cursor: pointer;"
-                    title="Ver Wiki Científica">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                    </svg>
-                    <span>wiki_cientifica</span>
-                </button>
+                    style="height: 60px; width: auto; object-fit: contain;" />
+                
+                <h1 style="margin: 0; font-size: 2.2rem; background: linear-gradient(135deg, #ffffff 30%, var(--primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; line-height: 1.2; text-align: center; width: 100%;">
+                    CATASTRO_LI <span class="brand-coord" style="font-size: 0.75rem; vertical-align: middle; color: rgba(129, 140, 248, 0.7);">[ 19S / UTM ]</span>
+                </h1>
+                
+                <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-top: 0.1rem; width: 100%;">
+                    <div class="subtitle" style="font-size: 0.88rem; margin: 0; text-align: center; color: var(--text-muted);">
+                        > ecosistema híbrido de analítica espacial y learned indexes</div>
+                    
+                    <!-- Botones alineados con el subtítulo como íconos compactos con animación de brillo inicial -->
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <a href="/visor" class="btn-copy-minimal load-glow-attention" title="Ingresar al Visor Cartográfico Proyectado" style="background: rgba(129, 140, 248, 0.08); border: 1px solid rgba(129, 140, 248, 0.2); border-radius: 4px; padding: 0.35rem; color: #a5b4fc; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                                <line x1="8" y1="2" x2="8" y2="18"></line>
+                                <line x1="16" y1="6" x2="16" y2="22"></line>
+                            </svg>
+                        </a>
+                        <button type="button" class="btn-copy-minimal load-glow-attention-purple" onclick="toggleWikiDrawer(true)" title="Ver Wiki Científica" style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 4px; padding: 0.35rem; color: #c084fc; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease; border-style: solid;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
         </header>
 
         <!-- SECCIÓN 1: Inspección de Datos Real-Time (Hero Card Centrada) -->
         <section class="hero-lote-card" style="display: flex; flex-direction: column; align-items: center; gap: 0.8rem;">
             
-            <div class="hero-flex-wrapper" style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 2rem; width: 100%; max-width: 800px; margin: 0 auto; overflow: visible;">
+            <div class="hero-flex-wrapper" style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0; width: 100%; max-width: 800px; margin: 0 auto; overflow: visible;">
                 <!-- Left: Visualización SVG -->
                 <div class="preview-container" style="margin: 0; flex-shrink: 0;">
                     <div id="lote-glow-wrap" class="lote-glow-wrap">
@@ -86,7 +80,7 @@
                 </div>
 
                 <!-- Right: Datos Minimalistas de Predio (Colapsable y Centrado) -->
-                <div class="preview-details metadata-panel-collapsible" id="metadata-details-panel" style="margin: 0; text-align: center; max-width: 320px; flex-shrink: 0;">
+                <div class="preview-details metadata-panel-collapsible" id="metadata-details-panel" style="text-align: center; max-width: 320px; flex-shrink: 0;">
                     <div class="minimal-predio-info"
                         style="display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
                         <span id="pres-id" class="minimal-id">—</span>
@@ -154,17 +148,11 @@
     </div>
 
     <!-- Modo de Depuración Visual (Ejecución Interna) -->
-    <div class="debug-mode-row"
-        style="margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.6rem;">
-        <label class="cyber-switch"
-            style="display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--font-family); font-size: 0.65rem; color: #a5b4fc; cursor: pointer; user-select: none;">
-            <input type="checkbox" id="debug-mode-checkbox" style="display: none;">
-            <span class="switch-visual"
-                style="width: 28px; height: 14px; border: 1px solid rgba(129, 140, 248, 0.4); background: rgba(11, 15, 25, 0.6); display: inline-block; position: relative; transition: all 0.2s ease;">
-                <span class="switch-knob"
-                    style="width: 8px; height: 8px; background: rgba(129, 140, 248, 0.6); position: absolute; top: 2px; left: 2px; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);"></span>
-            </span>
-            <span>[ ] modo_debug_ejecucion_interna</span>
+    <div class="debug-mode-row" style="margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: center; width: 100%;">
+        <label class="cyber-toggle" style="user-select: none;">
+            <input type="checkbox" id="debug-mode-checkbox">
+            <span class="cyber-toggle-slider"></span>
+            <span class="cyber-toggle-label">ejecución_interna_debug</span>
         </label>
     </div>
 
@@ -600,7 +588,7 @@
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Cargar app.js con buster de caché actualizado -->
-    <script src="js/app.js?v=2.16"></script>
+    <script src="js/app.js?v=2.20"></script>
 </body>
 
 </html>

@@ -633,7 +633,7 @@ function actualizarLotePresentadorNormal(data) {
     
     const mapBtn = document.getElementById("btn-ver-mapa");
     if (mapBtn && data.center) {
-        mapBtn.href = `/visor?lat=${data.center.lat}&lon=${data.center.lon}&zoom=18&id=${data.id_lote}`;
+        mapBtn.href = `/visor?lat=${data.center.lat}&lon=${data.center.lon}&zoom=18&id=${data.id_lote}&ciudad=${encodeURIComponent(data.ciudad || '')}`;
     }
     
     renderizarLoteSVG(data.geom);
