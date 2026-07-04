@@ -474,21 +474,6 @@ async function buscarLotePorId() {
         
     const stopScanner = animarScanner(() => {
         if (errorOccurred) {
-            Swal.fire({
-                title: '> error_busqueda',
-                text: errorOccurred.message,
-                icon: 'error',
-                background: '#0b0f19',
-                color: '#f1f5f9',
-                confirmButtonText: 'aceptar',
-                buttonsStyling: false,
-                customClass: {
-                    popup: 'swal2-retro-popup',
-                    title: 'swal2-retro-title',
-                    htmlContainer: 'swal2-retro-html',
-                    confirmButton: 'swal2-retro-btn'
-                }
-            });
             const placeholder = document.getElementById("lote-preview-placeholder");
             if (placeholder) {
                 placeholder.textContent = "No encontrado";
@@ -741,38 +726,36 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // Vincular líneas guía geoespaciales interactivos en los botones minimalistas de la landing
-    const btnElements = document.querySelectorAll(".presenter-actions .btn-action-minimal, .presenter-actions .search-container-minimal");
-    const guideH = document.getElementById("guide-line-h");
-    const guideV = document.getElementById("guide-line-v");
+    // Toggle R-Tree Traversal Trace
+    const btnToggleRTree = document.getElementById("btn-toggle-r-tree");
+    const rTreeWidget = document.querySelector(".r-tree-traversal-widget");
     
-    if (guideH && guideV) {
-        btnElements.forEach(btn => {
-            btn.addEventListener("mouseenter", () => {
-                const rect = btn.getBoundingClientRect();
-                const centerY = rect.top + rect.height / 2;
-                const centerX = rect.left + rect.width / 2;
-                
-                guideH.style.transform = `translateY(${centerY}px)`;
-                guideV.style.transform = `translateX(${centerX}px)`;
-                
-                guideH.classList.add("active");
-                guideV.classList.add("active");
-            });
-            btn.addEventListener("mouseleave", () => {
-                guideH.classList.remove("active");
-                guideV.classList.remove("active");
-            });
-            btn.addEventListener("mousemove", () => {
-                const rect = btn.getBoundingClientRect();
-                const centerY = rect.top + rect.height / 2;
-                const centerX = rect.left + rect.width / 2;
-                
-                guideH.style.transform = `translateY(${centerY}px)`;
-                guideV.style.transform = `translateX(${centerX}px)`;
-            });
+    if (btnToggleRTree && rTreeWidget) {
+        btnToggleRTree.addEventListener("click", () => {
+            const isExpanded = rTreeWidget.classList.toggle("expanded");
+            btnToggleRTree.textContent = isExpanded 
+                ? "> ocultar_traza_r_tree" 
+                : "> mostrar_traza_r_tree";
         });
     }
+
+    // Manejo de Pestañas del Dashboard
+    const tabButtons = document.querySelectorAll(".dashboard-tabs .tab-btn");
+    const tabPanes = document.querySelectorAll(".dashboard-tabs-container .tab-pane");
+    
+    tabButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            tabButtons.forEach(b => b.classList.remove("active"));
+            tabPanes.forEach(p => p.classList.remove("active"));
+            
+            btn.classList.add("active");
+            const targetId = btn.getAttribute("data-tab");
+            const targetPane = document.getElementById(targetId);
+            if (targetPane) {
+                targetPane.classList.add("active");
+            }
+        });
+    });
 
     // Función de contador progresivo (Odometer Effect)
     function animarContador(elemento, valorFinal, duracion = 1400) {

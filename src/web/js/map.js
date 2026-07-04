@@ -61,13 +61,14 @@ infoControl.onAdd = function (map) {
         <span id="info-msg">> inicializando_visor...</span>
         
         <!-- Representación de la Traza de Búsqueda R-Tree en el Visor -->
-        <div class="r-tree-traversal-widget" style="margin-top: 0.6rem; background: rgba(9, 13, 22, 0.95); border: 1px solid rgba(129, 140, 248, 0.25); width: 280px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+        <div class="r-tree-traversal-widget" style="margin-top: 0.5rem; background: rgba(9, 13, 22, 0.95); border: 1px solid rgba(129, 140, 248, 0.25); box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
             <div class="traversal-title">> r_tree_traversal_trace:</div>
             <div class="traversal-nodes">
                 <div class="traversal-node" id="r-tree-n0">
                     <span class="node-bullet n0-bullet"></span>
                     <div class="node-text">
-                        <span class="node-level">N0: Raíz</span>
+                        <span class="node-index">N0</span>
+                        <span class="node-level">Raíz</span>
                         <span class="node-meta" id="n0-meta">macro_bbox</span>
                     </div>
                 </div>
@@ -75,7 +76,8 @@ infoControl.onAdd = function (map) {
                 <div class="traversal-node" id="r-tree-n1">
                     <span class="node-bullet n1-bullet"></span>
                     <div class="node-text">
-                        <span class="node-level">N1: Manzana</span>
+                        <span class="node-index">N1</span>
+                        <span class="node-level">Manzana</span>
                         <span class="node-meta" id="n1-meta">sector_cluster</span>
                     </div>
                 </div>
@@ -83,13 +85,18 @@ infoControl.onAdd = function (map) {
                 <div class="traversal-node" id="r-tree-n2">
                     <span class="node-bullet n2-bullet"></span>
                     <div class="node-text">
-                        <span class="node-level">N2: Predio</span>
+                        <span class="node-index">N2</span>
+                        <span class="node-level">Predio</span>
                         <span class="node-meta" id="n2-meta">lote_id</span>
                     </div>
                 </div>
             </div>
         </div>
     `;
+    
+    // Evitar que hacer clic en el panel active eventos del mapa Leaflet
+    L.DomEvent.disableClickPropagation(div);
+    
     return div;
 };
 infoControl.addTo(map);
@@ -220,6 +227,13 @@ async function abrirLoteModal(idLote) {
         // Animar árbol de traza R-Tree en el panel flotante
         animarTrazaRTree(data);
         
+        const modalGlowWrap = document.getElementById("modal-lote-glow-wrap");
+        if (modalGlowWrap) {
+            modalGlowWrap.classList.remove("glow-active");
+            void modalGlowWrap.offsetWidth;
+            modalGlowWrap.classList.add("glow-active");
+        }
+        
         renderizarModalSVG(data.geom);
         
     } catch (error) {
@@ -327,6 +341,13 @@ async function cargarLotesPorViewport() {
         // Inyectar el nuevo set de geometrías
         lotesLayer.clearLayers();
         lotesLayer.addData(data);
+        
+        // Asegurar que las cajas del R-Tree queden en primer plano y no se tapen
+        rTreeVisualLayers.forEach(layer => {
+            if (layer && typeof layer.bringToFront === 'function') {
+                layer.bringToFront();
+            }
+        });
         
         // Destacar el lote buscado si se encuentra en este viewport
         if (highlightLoteId) {
@@ -521,6 +542,9 @@ function visualizarBusquedaRTree(loteCenter, loteGeom) {
     
     const rectN0 = L.rectangle(boundsN0, styleN0).addTo(map);
     const rectN1 = L.rectangle(boundsN1, styleN1).addTo(map);
+    
+    rectN0.bringToFront();
+    rectN1.bringToFront();
     
     rectN0.bindTooltip("R-Tree N0 (Raíz)", { permanent: true, className: "r-tree-tooltip-n0", direction: "top", opacity: 0.8 });
     rectN1.bindTooltip("R-Tree N1 (Nodo Interno)", { permanent: true, className: "r-tree-tooltip-n1", direction: "top", opacity: 0.8 });
@@ -802,22 +826,34 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // — Efecto tilt 3D en el polígono del modal —
-    const modalPolygon = document.getElementById("modal-lote-polygon");
-    const modalSvg     = document.getElementById("modal-lote-svg");
-    if (modalPolygon && modalSvg) {
-        modalPolygon.addEventListener("mousemove", (e) => {
-            const rect = modalSvg.getBoundingClientRect();
-            const rotX = ((rect.height/2 - (e.clientY - rect.top)) / (rect.height/2)) * 12;
-            const rotY = (((e.clientX - rect.left) - rect.width/2) / (rect.width/2)) * 12;
-            modalSvg.style.transition = "transform 0.08s ease-out";
-            modalSvg.style.transform  = `perspective(600px) scale(1.03) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
+    // — Efecto tilt 3D tipo carta coleccionable en el contenedor del modal —
+    const modalGlowWrap = document.getElementById("modal-lote-glow-wrap");
+    if (modalGlowWrap) {
+        modalGlowWrap.addEventListener("mousemove", (e) => {
+            const rect = modalGlowWrap.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const rotateX = ((centerY - y) / centerY) * 15;
+            const rotateY = ((x - centerX) / centerX) * 15;
+            
+            modalGlowWrap.style.transition = "transform 0.08s ease-out, box-shadow 0.15s ease-out, border-color 0.15s ease-out";
+            modalGlowWrap.style.transform = `perspective(600px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg)`;
+            modalGlowWrap.style.boxShadow = `${-rotateY * 2}px ${rotateX * 2}px 30px rgba(129, 140, 248, 0.14), 0 12px 35px rgba(0, 0, 0, 0.7)`;
+            modalGlowWrap.style.borderColor = "rgba(129, 140, 248, 0.45)";
         });
-        modalPolygon.addEventListener("mouseleave", () => {
-            modalSvg.style.transition = "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)";
-            modalSvg.style.transform  = "perspective(600px) scale(1) rotateX(0deg) rotateY(0deg)";
+        modalGlowWrap.addEventListener("mouseleave", () => {
+            modalGlowWrap.style.transition = "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s ease, border-color 0.4s ease";
+            modalGlowWrap.style.transform = "perspective(600px) rotateX(0deg) rotateY(0deg)";
+            modalGlowWrap.style.boxShadow = "";
+            modalGlowWrap.style.borderColor = "";
         });
     }
+
+
 
     // — Stats iniciales —
     actualizarStats();

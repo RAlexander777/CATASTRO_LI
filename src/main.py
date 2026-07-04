@@ -1,11 +1,13 @@
 # Force reload after search timer addition
 import os
+import time
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from src.config.database import get_db, DATABASE_URL, engine, Base
 from src.api.router import api_router
 
@@ -30,6 +32,23 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup_event():
+    print("Verificando la disponibilidad de la base de datos...")
+    max_retries = 30
+    delay = 2
+    for i in range(max_retries):
+        try:
+            # Intentar conectarse y ejecutar una consulta básica para validar el estado del servidor db
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            print("¡Conexión con la base de datos establecida con éxito!")
+            break
+        except OperationalError as e:
+            print(f"Base de datos no disponible todavía ({e.__class__.__name__}). "
+                  f"Intento {i+1}/{max_retries}. Reintentando en {delay} segundos...")
+            time.sleep(delay)
+    else:
+        print("Error: No se pudo conectar a la base de datos después de todos los reintentos.")
+        
     print("Sincronizando el esquema de la base de datos de forma nativa...")
     Base.metadata.create_all(bind=engine)
     print("Esquema de base de datos verificado y listo.")

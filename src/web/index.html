@@ -8,13 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=1.7">
+    <link rel="stylesheet" href="css/styles.css?v=2.1">
 </head>
 <body>
-    <!-- Líneas guía geoespaciales para hover de botones -->
-    <div id="guide-line-h" class="guide-line h"></div>
-    <div id="guide-line-v" class="guide-line v"></div>
-
     <!-- Canvas de fondo para el mapa satelital/vectorial animado -->
     <canvas id="bg-canvas"></canvas>
 
@@ -82,6 +78,10 @@
                     </div>
                 </div>
 
+                <div class="r-tree-toggle-row">
+                    <button type="button" id="btn-toggle-r-tree" class="btn-toggle-link">> mostrar_traza_r_tree</button>
+                </div>
+
                 <!-- Representación de la Traza de Búsqueda R-Tree (Nodos/Niveles) -->
                 <div class="r-tree-traversal-widget">
                     <div class="traversal-title">> r_tree_traversal_trace:</div>
@@ -89,7 +89,8 @@
                         <div class="traversal-node" id="r-tree-n0">
                             <span class="node-bullet n0-bullet"></span>
                             <div class="node-text">
-                                <span class="node-level">N0: Raíz (Puno)</span>
+                                <span class="node-index">N0</span>
+                                <span class="node-level">Raíz</span>
                                 <span class="node-meta" id="n0-meta">macro_bbox</span>
                             </div>
                         </div>
@@ -97,7 +98,8 @@
                         <div class="traversal-node" id="r-tree-n1">
                             <span class="node-bullet n1-bullet"></span>
                             <div class="node-text">
-                                <span class="node-level">N1: Manzana BBox</span>
+                                <span class="node-index">N1</span>
+                                <span class="node-level">Manzana</span>
                                 <span class="node-meta" id="n1-meta">sector_cluster</span>
                             </div>
                         </div>
@@ -105,7 +107,8 @@
                         <div class="traversal-node" id="r-tree-n2">
                             <span class="node-bullet n2-bullet"></span>
                             <div class="node-text">
-                                <span class="node-level">N2: Predio (Hoja)</span>
+                                <span class="node-index">N2</span>
+                                <span class="node-level">Predio</span>
                                 <span class="node-meta" id="n2-meta">lote_id</span>
                             </div>
                         </div>
@@ -132,11 +135,18 @@
             </div>
         </section>
 
-        <!-- GRID DE INFORMACIÓN Y CONTROL (3 COLUMNAS SIMÉTRICAS) -->
-        <main class="dashboard-grid-horizontal">
+        <!-- Pestañas de Navegación del Dashboard -->
+        <div class="dashboard-tabs">
+            <button class="tab-btn active" data-tab="research-tab">> cientifico</button>
+            <button class="tab-btn" data-tab="metrics-tab">> métricas</button>
+            <button class="tab-btn" data-tab="efficiency-tab">> rendimiento</button>
+        </div>
+
+        <!-- Contenedor de Pestañas (Centradas y con menos ruido visual) -->
+        <main class="dashboard-tabs-container">
             
-            <!-- COLUMNA 1: Fundamento Científico -->
-            <div class="dashboard-card research-card">
+            <!-- PESTAÑA 1: Fundamento Científico -->
+            <div id="research-tab" class="dashboard-card tab-pane active">
                 <h3>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
                     Línea de Investigación
@@ -151,8 +161,8 @@
                 </div>
             </div>
 
-            <!-- COLUMNA 2: Métricas del Ecosistema -->
-            <div class="dashboard-card memory-widgets-card">
+            <!-- PESTAÑA 2: Métricas del Ecosistema -->
+            <div id="metrics-tab" class="dashboard-card tab-pane">
                 <h3>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                     Métricas del Ecosistema
@@ -183,8 +193,8 @@
                 </div>
             </div>
 
-            <!-- COLUMNA 3: Comparativa de Eficiencia -->
-            <div class="dashboard-card analytics-comparison-card">
+            <!-- PESTAÑA 3: Comparativa de Eficiencia -->
+            <div id="efficiency-tab" class="dashboard-card tab-pane">
                 <h3>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                     Eficiencia Espacial (RAM)
@@ -210,6 +220,6 @@
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Cargar app.js con buster de caché actualizado -->
-    <script src="js/app.js?v=1.9"></script>
+    <script src="js/app.js?v=2.0"></script>
 </body>
 </html>

@@ -77,21 +77,12 @@ body {
     z-index: 10;
 }
 
-.dashboard-grid-horizontal {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1.8rem;
-    margin-top: 1.5rem;
-    text-align: left;
+/* Contenedor de Pestañas (Centradas y con menos ruido visual) */
+.dashboard-tabs-container {
+    max-width: 600px;
     width: 100%;
-    align-items: stretch;
-}
-
-@media (max-width: 980px) {
-    .dashboard-grid-horizontal {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
+    margin: 0 auto 3rem auto;
+    text-align: left;
 }
 
 /* Área del Botón Principal de Ingreso de Alto Impacto */
@@ -1059,11 +1050,14 @@ path.leaflet-interactive:nth-child(4n+4) { animation-delay: 0.09s; }
     height: 240px;
 }
 
+#modal-lote-glow-wrap {
+    background: rgba(16, 24, 48, 0.92) !important;
+    border: 1px solid rgba(129, 140, 248, 0.35);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(129, 140, 248, 0.1);
+}
+
 #modal-lote-svg {
     display: block;
-    transform-style: preserve-3d;
-    transform: perspective(600px) rotateX(0deg) rotateY(0deg);
-    transition: transform 0.15s ease-out, filter 0.15s ease-out;
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
 }
 
@@ -1076,9 +1070,10 @@ path.leaflet-interactive:nth-child(4n+4) { animation-delay: 0.09s; }
     transition: fill 0.3s, stroke 0.3s;
 }
 
-#modal-lote-polygon:hover {
+#modal-lote-svg:hover #modal-lote-polygon {
     fill: rgba(129, 140, 248, 0.18);
     stroke: #a5b4fc;
+    stroke-width: 3;
 }
 
 .modal-details {
@@ -1950,12 +1945,119 @@ optgroup { background: #0d1117; color: #64748b; }
 }
 
 /* Widget de traza de búsqueda R-Tree (Landing Page) */
+.r-tree-toggle-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.4rem;
+    margin-bottom: 0.2rem;
+}
+.btn-toggle-link {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-family);
+    font-size: 0.65rem;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    transition: color 0.2s ease, opacity 0.2s ease;
+    opacity: 0.75;
+    text-transform: lowercase;
+}
+.btn-toggle-link:hover {
+    color: #818cf8;
+    opacity: 1;
+}
+
 .r-tree-traversal-widget {
     margin-top: 0.2rem;
     background: rgba(11, 15, 25, 0.55);
     border: 1px solid rgba(129, 140, 248, 0.15);
     padding: 0.6rem 0.8rem;
     box-sizing: border-box;
+    display: none; /* Oculto por defecto para reducir saturación visual */
+}
+.r-tree-traversal-widget.expanded {
+    display: block;
+    animation: rtreeSlideDown 0.3s ease-out;
+}
+
+
+@keyframes rtreeSlideDown {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Dashboard Tabs Layout (para evitar saturación horizontal) */
+.dashboard-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0.8rem;
+    margin: 2.2rem auto 1.2rem auto;
+    max-width: 600px;
+    width: 100%;
+}
+
+.tab-btn {
+    background: rgba(9, 13, 22, 0.6);
+    border: 1px solid rgba(129, 140, 248, 0.2);
+    color: var(--text-muted);
+    font-family: var(--font-family);
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 0.5rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    text-transform: lowercase;
+    position: relative;
+}
+
+.tab-btn:hover {
+    color: #818cf8;
+    background: rgba(129, 140, 248, 0.05);
+    border-color: rgba(129, 140, 248, 0.4);
+}
+
+.tab-btn.active {
+    color: #fff;
+    background: rgba(129, 140, 248, 0.12);
+    border-color: #818cf8;
+    box-shadow: 0 0 15px rgba(129, 140, 248, 0.2);
+}
+
+.tab-btn.active::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30%;
+    height: 2px;
+    background: #818cf8;
+    box-shadow: 0 0 8px #818cf8;
+}
+
+/* Visibilidad de las Pestañas */
+.tab-pane {
+    display: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.tab-pane.active {
+    display: flex;
+    flex-direction: column;
+    animation: tabPaneFadeIn 0.35s ease-out;
+}
+
+@keyframes tabPaneFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 .traversal-title {
     font-family: var(--font-family);
@@ -1989,6 +2091,15 @@ optgroup { background: #0d1117; color: #64748b; }
     display: flex;
     flex-direction: column;
 }
+.node-index {
+    font-family: var(--font-family);
+    font-size: 0.62rem;
+    color: rgba(129, 140, 248, 0.4);
+    text-transform: uppercase;
+    font-weight: 600;
+    line-height: 1.1;
+    transition: color 0.3s ease;
+}
 .node-level {
     font-family: var(--font-family);
     font-size: 0.72rem;
@@ -2020,6 +2131,7 @@ optgroup { background: #0d1117; color: #64748b; }
     background: #a855f7;
     box-shadow: 0 0 10px #a855f7, 0 0 0 3px rgba(168, 85, 247, 0.2);
 }
+.traversal-node.active-n0 .node-index { color: #d8b4fe; }
 .traversal-node.active-n0 .node-level { color: #fff; }
 .traversal-node.active-n0 .node-meta { color: #d8b4fe; }
 
@@ -2031,6 +2143,7 @@ optgroup { background: #0d1117; color: #64748b; }
     background: #06b6d4;
     box-shadow: 0 0 10px #06b6d4, 0 0 0 3px rgba(6, 182, 212, 0.2);
 }
+.traversal-node.active-n1 .node-index { color: #a5f3fc; }
 .traversal-node.active-n1 .node-level { color: #fff; }
 .traversal-node.active-n1 .node-meta { color: #a5f3fc; }
 
@@ -2042,6 +2155,7 @@ optgroup { background: #0d1117; color: #64748b; }
     background: #ef4444;
     box-shadow: 0 0 10px #ef4444, 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
+.traversal-node.active-n2 .node-index { color: #fca5a5; }
 .traversal-node.active-n2 .node-level { color: #fff; font-weight: 600; }
 .traversal-node.active-n2 .node-meta { color: #fca5a5; }
 
@@ -2134,21 +2248,21 @@ optgroup { background: #0d1117; color: #64748b; }
 
 /* Cuando el contenedor tiene la clase glitch-active */
 .lote-glow-wrap.glitch-active {
-    animation: glitch-shake 0.35s infinite;
-    border-color: rgba(239, 68, 68, 0.4) !important;
-    box-shadow: 0 0 25px rgba(239, 68, 68, 0.3), 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    animation: glitch-shake 0.35s 2 ease-out forwards; /* Se sacude brevemente y luego se congela */
+    border-color: #ef4444 !important; /* Rojo estático sólido */
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.4), 0 10px 30px rgba(0, 0, 0, 0.6) !important;
 }
 
 .lote-glow-wrap.glitch-active::before {
     border-top-color: #ef4444 !important;
     border-left-color: #ef4444 !important;
-    animation: flash-red 0.5s infinite steps(2);
+    animation: flash-red 0.35s 2 steps(2) forwards; /* Parpadea dos veces y queda estático en rojo */
 }
 
 .lote-glow-wrap.glitch-active::after {
     border-bottom-color: #ef4444 !important;
     border-right-color: #ef4444 !important;
-    animation: flash-red 0.5s infinite steps(2);
+    animation: flash-red 0.35s 2 steps(2) forwards;
 }
 
 .lote-glow-wrap.glitch-active .lote-glitch-overlay {
@@ -2173,19 +2287,19 @@ optgroup { background: #0d1117; color: #64748b; }
 
 .glitch-line:nth-child(1) {
     top: 20%;
-    animation: glitch-move-1 1s infinite linear;
+    animation: glitch-move-1 0.7s 1 linear forwards; /* Cruza una vez y desaparece */
 }
 
 .glitch-line:nth-child(2) {
     top: 50%;
     background: rgba(6, 182, 212, 0.6);
     box-shadow: 0 0 8px rgba(6, 182, 212, 0.8), 0 0 2px #fff;
-    animation: glitch-move-2 1.5s infinite linear;
+    animation: glitch-move-2 0.7s 1 linear forwards;
 }
 
 .glitch-line:nth-child(3) {
     top: 80%;
-    animation: glitch-move-3 0.8s infinite linear;
+    animation: glitch-move-3 0.7s 1 linear forwards;
 }
 
 /* Ruido digital estático (como un holograma dañado) */
@@ -2201,7 +2315,7 @@ optgroup { background: #0d1117; color: #64748b; }
     color: rgba(239, 68, 68, 0.9);
     text-shadow: 2px 0 0 rgba(6, 182, 212, 0.8), -2px 0 0 rgba(239, 68, 68, 0.8);
     letter-spacing: 4px;
-    animation: glitch-text-pulse 1s infinite steps(4);
+    animation: glitch-text-pulse 0.7s 1 steps(4) forwards; /* Parpadea una vez y queda estático glitcheado */
 }
 
 /* Efecto scanline general de fondo en la tarjeta glitcheada */
@@ -2282,5 +2396,102 @@ optgroup { background: #0d1117; color: #64748b; }
         transform: translate(-51%, -49%) skew(-1deg);
         content: "NOT_FOUND";
     }
+}
+
+/* Ajustes para el widget de traza R-Tree en el panel retro del mapa (siempre visible y más grande) */
+.map-info-panel-retro .r-tree-traversal-widget {
+    display: block !important;
+    width: 320px !important;
+    padding: 0.8rem 1rem !important;
+    border-color: rgba(129, 140, 248, 0.3) !important;
+}
+
+.map-info-panel-retro .traversal-nodes {
+    gap: 0.6rem !important;
+}
+
+.map-info-panel-retro .traversal-title {
+    font-size: 0.78rem !important;
+    margin-bottom: 0.45rem !important;
+}
+
+.map-info-panel-retro .node-index {
+    font-size: 0.72rem !important;
+}
+
+.map-info-panel-retro .node-level {
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+}
+
+.map-info-panel-retro .node-meta {
+    font-size: 0.68rem !important;
+}
+
+.map-info-panel-retro .node-bullet {
+    width: 8px !important;
+    height: 8px !important;
+}
+
+.map-info-panel-retro .traversal-connector {
+    max-width: 35px !important;
+}
+
+/* Rediseño específico de la traza R-Tree en la Landing Page (Index) */
+.hero-lote-card .r-tree-traversal-widget {
+    margin: 0.6rem auto 0 auto !important; /* Centrado horizontalmente */
+    max-width: 400px !important;            /* Ancho limitado para evitar separación excesiva */
+    background: rgba(11, 15, 25, 0.45) !important;
+    border: 1px dashed rgba(129, 140, 248, 0.2) !important;
+    padding: 0.6rem 0.9rem !important;
+}
+
+.hero-lote-card .traversal-nodes {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important; /* Agrupar y centrar en lugar de separar a los extremos */
+    gap: 0.6rem !important;             /* Espacio controlado entre nodos */
+}
+
+.hero-lote-card .traversal-node {
+    flex: 0 1 auto !important;          /* Evitar que los nodos se estiren solos */
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
+}
+
+.hero-lote-card .node-bullet {
+    margin-top: 0.25rem !important; /* Centrado con la fila superior "N0" */
+    width: 6px !important;
+    height: 6px !important;
+}
+
+.hero-lote-card .traversal-connector {
+    flex-grow: 0 !important;            /* Desactivar crecimiento de la línea */
+    width: 25px !important;             /* Ancho fijo corto para las líneas de unión */
+    margin-top: 0.45rem !important;
+}
+
+.hero-lote-card .node-text {
+    gap: 1px !important;
+}
+
+.hero-lote-card .node-index {
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px;
+    line-height: 1.1 !important;
+}
+
+.hero-lote-card .node-level {
+    font-size: 0.68rem !important;
+    color: var(--text-muted) !important;
+    line-height: 1.2 !important;
+}
+
+.hero-lote-card .node-meta {
+    font-size: 0.55rem !important;
+    color: rgba(129, 140, 248, 0.35) !important;
+    max-width: 80px !important;
+    line-height: 1.2 !important;
 }
 

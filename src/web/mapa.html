@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="css/styles.css?v=2.0" />
+    <link rel="stylesheet" href="css/styles.css?v=2.7" />
 </head>
 <body class="map-body">
 
@@ -116,7 +116,6 @@
                 <input type="range" id="lote-opacity-slider" min="0" max="100" value="40" class="opacity-slider" title="Opacidad del relleno">
             </div>
         </div>
-
         <div class="panel-divider"></div>
 
         <!-- Sección: Estadísticas -->
@@ -168,16 +167,18 @@
             </button>
 
             <div class="modal-hero">
-                <svg id="modal-lote-svg" width="220" height="220" viewBox="0 0 220 220">
-                    <polygon id="modal-lote-polygon" points="" />
-                </svg>
-                <div id="modal-lote-placeholder" class="placeholder-text">> cargando_geometria...</div>
+                <div id="modal-lote-glow-wrap" class="lote-glow-wrap" style="width: 220px; height: 220px;">
+                    <svg id="modal-lote-svg" width="220" height="220" viewBox="0 0 220 220">
+                        <polygon id="modal-lote-polygon" points="" />
+                    </svg>
+                    <div id="modal-lote-placeholder" class="placeholder-text">> cargando_geometria...</div>
+                </div>
             </div>
 
             <div class="modal-details">
                 <h3 class="modal-title">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <path d="M12 22s-8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                     </svg>
                     inspección_predio
                 </h3>
@@ -194,6 +195,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="js/map.js?v=1.7"></script>
+    <script src="js/map.js?v=2.2"></script>
 </body>
 </html>
