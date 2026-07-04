@@ -57,6 +57,12 @@
                     <svg id="lote-svg" width="240" height="240" viewBox="0 0 240 240" style="cursor: pointer;" title="Hacer clic para ver en mapa">
                         <polygon id="lote-polygon" points="" />
                     </svg>
+                    <!-- Glitch Overlay para Lote No Encontrado -->
+                    <div id="lote-glitch-overlay" class="lote-glitch-overlay">
+                        <div class="glitch-line"></div>
+                        <div class="glitch-line"></div>
+                        <div class="glitch-line"></div>
+                    </div>
                 </div>
                 <div id="lote-preview-placeholder" class="placeholder-text">> cargando_vista...</div>
             </div>
@@ -72,7 +78,37 @@
                     </div>
                     <div class="minimal-meta-info">
                         <span id="pres-coords">—</span> 
-                        <span class="minimal-time-tag">[pgm_index: <span id="pres-time">—</span>]</span>
+                        <span class="minimal-time-tag">[r_tree: <span id="pres-time">—</span>]</span>
+                    </div>
+                </div>
+
+                <!-- Representación de la Traza de Búsqueda R-Tree (Nodos/Niveles) -->
+                <div class="r-tree-traversal-widget">
+                    <div class="traversal-title">> r_tree_traversal_trace:</div>
+                    <div class="traversal-nodes">
+                        <div class="traversal-node" id="r-tree-n0">
+                            <span class="node-bullet n0-bullet"></span>
+                            <div class="node-text">
+                                <span class="node-level">N0: Raíz (Puno)</span>
+                                <span class="node-meta" id="n0-meta">macro_bbox</span>
+                            </div>
+                        </div>
+                        <div class="traversal-connector" id="r-tree-c0"></div>
+                        <div class="traversal-node" id="r-tree-n1">
+                            <span class="node-bullet n1-bullet"></span>
+                            <div class="node-text">
+                                <span class="node-level">N1: Manzana BBox</span>
+                                <span class="node-meta" id="n1-meta">sector_cluster</span>
+                            </div>
+                        </div>
+                        <div class="traversal-connector" id="r-tree-c1"></div>
+                        <div class="traversal-node" id="r-tree-n2">
+                            <span class="node-bullet n2-bullet"></span>
+                            <div class="node-text">
+                                <span class="node-level">N2: Predio (Hoja)</span>
+                                <span class="node-meta" id="n2-meta">lote_id</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

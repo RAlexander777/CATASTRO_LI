@@ -149,6 +149,13 @@
         <button type="button" class="btn-action-minimal btn-dice" onclick="cargarLoteAleatorioVisor()" title="Lote Aleatorio">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><circle cx="15.5" cy="15.5" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="8.5" cy="15.5" r="1.5"></circle><circle cx="15.5" cy="8.5" r="1.5"></circle></svg>
         </button>
+        
+        <!-- HUD de Rendimiento del R-Tree en ms -->
+        <div id="r-tree-performance-hud" class="performance-hud-minimal" title="Tiempo de búsqueda en base de datos (PostGIS R-Tree)">
+            <span class="hud-label">r_tree:</span>
+            <span id="hud-time-val" class="hud-val">—</span>
+            <span class="hud-unit">ms</span>
+        </div>
     </div>
 
     <!-- Modal de Inspección de Lote -->
@@ -180,7 +187,6 @@
                     <div class="modal-item"><strong>Área (m²)</strong><span id="modal-pres-area">—</span></div>
                     <div class="modal-item"><strong>Perímetro (m)</strong><span id="modal-pres-peri">—</span></div>
                     <div class="modal-item modal-item--wide"><strong>Centroide WGS84</strong><span id="modal-pres-coords">—</span></div>
-                    <div class="modal-item modal-item--wide modal-item--highlight"><strong>Búsqueda PGM Index</strong><span id="modal-pres-time">—</span></div>
                 </div>
             </div>
         </div>

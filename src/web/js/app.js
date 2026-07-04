@@ -325,7 +325,15 @@ function inicializarMapaFondo() {
 // Genera un bucle visual rápido simulando un escaneo en base de datos
 function animarScanner(realDataCallback) {
     const placeholder = document.getElementById("lote-preview-placeholder");
-    if (placeholder) placeholder.textContent = "";
+    if (placeholder) {
+        placeholder.textContent = "";
+        placeholder.classList.remove("error-active");
+    }
+    
+    const glowWrap = document.getElementById("lote-glow-wrap");
+    if (glowWrap) {
+        glowWrap.classList.remove("glitch-active");
+    }
     
     const elements = {
         id: document.getElementById("pres-id"),
@@ -482,7 +490,14 @@ async function buscarLotePorId() {
                 }
             });
             const placeholder = document.getElementById("lote-preview-placeholder");
-            if (placeholder) placeholder.textContent = "No encontrado";
+            if (placeholder) {
+                placeholder.textContent = "No encontrado";
+                placeholder.classList.add("error-active");
+            }
+            const glowWrap = document.getElementById("lote-glow-wrap");
+            if (glowWrap) {
+                glowWrap.classList.add("glitch-active");
+            }
             document.getElementById("pres-id").textContent = "-";
             document.getElementById("pres-ciudad").textContent = "-";
             document.getElementById("pres-area").textContent = "-";
@@ -504,13 +519,22 @@ async function buscarLotePorId() {
 }
 
 function actualizarLotePresentador(data) {
+    const placeholder = document.getElementById("lote-preview-placeholder");
+    if (placeholder) {
+        placeholder.classList.remove("error-active");
+    }
+    const glowWrap = document.getElementById("lote-glow-wrap");
+    if (glowWrap) {
+        glowWrap.classList.remove("glitch-active");
+    }
+
     document.getElementById("pres-id").textContent = data.id_lote;
     document.getElementById("pres-ciudad").textContent = data.ciudad || "Sector Sintético";
     document.getElementById("pres-area").textContent = data.area_grafica ? Number(data.area_grafica).toFixed(2) + " m²" : "N/D";
     document.getElementById("pres-peri").textContent = data.peri_grafico ? Number(data.peri_grafico).toFixed(2) + " m" : "N/D";
     document.getElementById("pres-coords").textContent = data.center ? `${Number(data.center.lat).toFixed(5)}, ${Number(data.center.lon).toFixed(5)}` : "N/D";
     
-    // Simulación de computación viva en el índice aprendido
+    // Simulación de computación viva en el índice R-Tree de la base de datos
     const originalTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.120;
     const simulatedTime = (originalTime + (Math.random() * 0.04 - 0.02)).toFixed(3);
     const timeEl = document.getElementById("pres-time");
@@ -523,6 +547,39 @@ function actualizarLotePresentador(data) {
             timeEl.style.color = ""; // Restaurar color inicial
         }, 120);
     }
+    
+    // Actualizar metadata dinámica en el árbol traversal del R-Tree
+    const n0Meta = document.getElementById("n0-meta");
+    const n1Meta = document.getElementById("n1-meta");
+    const n2Meta = document.getElementById("n2-meta");
+    
+    if (n0Meta) n0Meta.textContent = data.ciudad ? data.ciudad.split("(")[0].trim() : "Puno";
+    if (n1Meta) {
+        // Estimar un tamaño de BBox simulado basado en el área del predio
+        const side = Math.sqrt(data.area_grafica || 200) * 3.5;
+        n1Meta.textContent = `bbox ${side.toFixed(0)}x${side.toFixed(0)}m`;
+    }
+    if (n2Meta) n2Meta.textContent = `id ${data.id_lote.substring(10)}`;
+
+    // Reiniciar clases de animación
+    const elements = {
+        n0: document.getElementById("r-tree-n0"),
+        c0: document.getElementById("r-tree-c0"),
+        n1: document.getElementById("r-tree-n1"),
+        c1: document.getElementById("r-tree-c1"),
+        n2: document.getElementById("r-tree-n2")
+    };
+    
+    Object.values(elements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0]; // Mantener sólo clase base (traversal-node/traversal-connector)
+    });
+
+    // Secuencia de animación de traza en niveles del R-Tree
+    setTimeout(() => { if (elements.n0) elements.n0.classList.add("active-n0"); }, 50);
+    setTimeout(() => { if (elements.c0) elements.c0.classList.add("active-c0"); }, 180);
+    setTimeout(() => { if (elements.n1) elements.n1.classList.add("active-n1"); }, 300);
+    setTimeout(() => { if (elements.c1) elements.c1.classList.add("active-c1"); }, 420);
+    setTimeout(() => { if (elements.n2) elements.n2.classList.add("active-n2"); }, 550);
     
     const mapBtn = document.getElementById("btn-ver-mapa");
     if (mapBtn && data.center) {

@@ -54,10 +54,42 @@ let baseTileLayer = L.tileLayer(MAP_STYLES.dark.url, {
 }).addTo(map);
 
 // Crear panel informativo personalizado en el mapa
-const infoControl = L.control({ position: 'topleft' });
+const infoControl = L.control({ position: 'topright' });
 infoControl.onAdd = function (map) {
     const div = L.DomUtil.create('div', 'map-info-panel-retro');
-    div.innerHTML = `<span id="info-msg">> inicializando_visor...</span>`;
+    div.innerHTML = `
+        <span id="info-msg">> inicializando_visor...</span>
+        
+        <!-- Representación de la Traza de Búsqueda R-Tree en el Visor -->
+        <div class="r-tree-traversal-widget" style="margin-top: 0.6rem; background: rgba(9, 13, 22, 0.95); border: 1px solid rgba(129, 140, 248, 0.25); width: 280px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+            <div class="traversal-title">> r_tree_traversal_trace:</div>
+            <div class="traversal-nodes">
+                <div class="traversal-node" id="r-tree-n0">
+                    <span class="node-bullet n0-bullet"></span>
+                    <div class="node-text">
+                        <span class="node-level">N0: Raíz</span>
+                        <span class="node-meta" id="n0-meta">macro_bbox</span>
+                    </div>
+                </div>
+                <div class="traversal-connector" id="r-tree-c0"></div>
+                <div class="traversal-node" id="r-tree-n1">
+                    <span class="node-bullet n1-bullet"></span>
+                    <div class="node-text">
+                        <span class="node-level">N1: Manzana</span>
+                        <span class="node-meta" id="n1-meta">sector_cluster</span>
+                    </div>
+                </div>
+                <div class="traversal-connector" id="r-tree-c1"></div>
+                <div class="traversal-node" id="r-tree-n2">
+                    <span class="node-bullet n2-bullet"></span>
+                    <div class="node-text">
+                        <span class="node-level">N2: Predio</span>
+                        <span class="node-meta" id="n2-meta">lote_id</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
     return div;
 };
 infoControl.addTo(map);
@@ -158,7 +190,6 @@ async function abrirLoteModal(idLote) {
     document.getElementById("modal-pres-peri").textContent = "-";
     document.getElementById("modal-pres-coords").textContent = "-";
     document.getElementById("modal-pres-ciudad").textContent = "-";
-    document.getElementById("modal-pres-time").textContent = "-";
     
     try {
         const response = await fetch(`/api/lotes/${idLote}`);
@@ -179,9 +210,15 @@ async function abrirLoteModal(idLote) {
         
         animarTextoTerminal(document.getElementById("modal-pres-ciudad"), data.ciudad || "Sector Sintético", 180);
         
-        const originalTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.120;
-        const simulatedTime = (originalTime + (Math.random() * 0.04 - 0.02)).toFixed(3) + " ms";
-        animarTextoTerminal(document.getElementById("modal-pres-time"), simulatedTime, 120);
+        // Actualizar HUD de rendimiento con la velocidad de búsqueda
+        const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
+        actualizarHudRendimiento(searchTime);
+        
+        // Visualizar niveles del árbol R-Tree (Bounding Boxes MBR)
+        visualizarBusquedaRTree(data.center, data.geom);
+        
+        // Animar árbol de traza R-Tree en el panel flotante
+        animarTrazaRTree(data);
         
         renderizarModalSVG(data.geom);
         
@@ -257,6 +294,7 @@ async function cargarLotesPorViewport() {
     // Si la cámara está muy alejada, no cargamos geometría para evitar colapso de red
     if (zoom < 15) {
         lotesLayer.clearLayers();
+        limpiarVisualizacionRTree();
         if (infoMsg) {
             infoMsg.innerHTML = '> acerca_mapa (Zoom >= 15) para cargar lotes';
         }
@@ -451,6 +489,91 @@ function actualizarStats() {
 }
 map.on("zoomend moveend", actualizarStats);
 
+// Capas de Bounding Boxes (MBR) para simular el R-Tree
+let rTreeVisualLayers = [];
+
+function limpiarVisualizacionRTree() {
+    rTreeVisualLayers.forEach(layer => map.removeLayer(layer));
+    rTreeVisualLayers = [];
+}
+
+function visualizarBusquedaRTree(loteCenter, loteGeom) {
+    limpiarVisualizacionRTree();
+    
+    if (!loteCenter || !loteCenter.lat || !loteCenter.lon) return;
+    
+    const lat = Number(loteCenter.lat);
+    const lon = Number(loteCenter.lon);
+    
+    // Nivel 0: Raíz (Macro Sector)
+    const boundsN0 = [
+        [lat - 0.0055, lon - 0.0075],
+        [lat + 0.0055, lon + 0.0075]
+    ];
+    // Nivel 1: Nodo Interno (Manzana / Clúster)
+    const boundsN1 = [
+        [lat - 0.0012, lon - 0.0016],
+        [lat + 0.0012, lon + 0.0016]
+    ];
+    
+    const styleN0 = { color: "#a855f7", weight: 1, fill: true, fillColor: "#a855f7", fillOpacity: 0.015, dashArray: "6, 6", interactive: false };
+    const styleN1 = { color: "#06b6d4", weight: 1.2, fill: true, fillColor: "#06b6d4", fillOpacity: 0.03, dashArray: "4, 4", interactive: false };
+    
+    const rectN0 = L.rectangle(boundsN0, styleN0).addTo(map);
+    const rectN1 = L.rectangle(boundsN1, styleN1).addTo(map);
+    
+    rectN0.bindTooltip("R-Tree N0 (Raíz)", { permanent: true, className: "r-tree-tooltip-n0", direction: "top", opacity: 0.8 });
+    rectN1.bindTooltip("R-Tree N1 (Nodo Interno)", { permanent: true, className: "r-tree-tooltip-n1", direction: "top", opacity: 0.8 });
+    
+    rTreeVisualLayers.push(rectN0, rectN1);
+}
+
+function animarTrazaRTree(data) {
+    const n0Meta = document.getElementById("n0-meta");
+    const n1Meta = document.getElementById("n1-meta");
+    const n2Meta = document.getElementById("n2-meta");
+    
+    if (n0Meta) n0Meta.textContent = data.ciudad ? data.ciudad.split("(")[0].trim() : "Puno";
+    if (n1Meta) {
+        const side = Math.sqrt(data.area_grafica || 200) * 3.5;
+        n1Meta.textContent = `bbox ${side.toFixed(0)}x${side.toFixed(0)}m`;
+    }
+    if (n2Meta) n2Meta.textContent = `id ${data.id_lote.substring(10)}`;
+
+    const elements = {
+        n0: document.getElementById("r-tree-n0"),
+        c0: document.getElementById("r-tree-c0"),
+        n1: document.getElementById("r-tree-n1"),
+        c1: document.getElementById("r-tree-c1"),
+        n2: document.getElementById("r-tree-n2")
+    };
+    
+    Object.values(elements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0];
+    });
+
+    setTimeout(() => { if (elements.n0) elements.n0.classList.add("active-n0"); }, 50);
+    setTimeout(() => { if (elements.c0) elements.c0.classList.add("active-c0"); }, 180);
+    setTimeout(() => { if (elements.n1) elements.n1.classList.add("active-n1"); }, 300);
+    setTimeout(() => { if (elements.c1) elements.c1.classList.add("active-c1"); }, 420);
+    setTimeout(() => { if (elements.n2) elements.n2.classList.add("active-n2"); }, 550);
+}
+
+function actualizarHudRendimiento(timeMs) {
+    const hudVal = document.getElementById("hud-time-val");
+    const hudContainer = document.getElementById("r-tree-performance-hud");
+    
+    if (hudVal) {
+        hudVal.textContent = Number(timeMs).toFixed(3);
+    }
+    
+    if (hudContainer) {
+        hudContainer.classList.remove("hud-flash");
+        void hudContainer.offsetWidth; // Forzar reflow para reiniciar la animación CSS
+        hudContainer.classList.add("hud-flash");
+    }
+}
+
 // ── Búsqueda y Aleatorización en el Visor ─────────────────────────────────
 async function cargarLoteAleatorioVisor() {
     const diceBtn = document.querySelector(".btn-dice");
@@ -470,6 +593,16 @@ async function cargarLoteAleatorioVisor() {
             map.flyTo([data.center.lat, data.center.lon], 18, {
                 duration: 1.5
             });
+
+            // Actualizar HUD de rendimiento con la velocidad de búsqueda
+            const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
+            actualizarHudRendimiento(searchTime);
+
+            // Visualizar niveles del árbol R-Tree (Bounding Boxes MBR)
+            visualizarBusquedaRTree(data.center, data.geom);
+
+            // Animar árbol de traza R-Tree en el panel flotante
+            animarTrazaRTree(data);
 
             // Actualizar el selector de ciudad si la ciudad del lote existe en el select
             if (data.ciudad) {
@@ -544,6 +677,16 @@ async function buscarLotePorIdVisor() {
             map.flyTo([data.center.lat, data.center.lon], 18, {
                 duration: 1.5
             });
+
+            // Actualizar HUD de rendimiento con la velocidad de búsqueda
+            const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
+            actualizarHudRendimiento(searchTime);
+
+            // Visualizar niveles del árbol R-Tree (Bounding Boxes MBR)
+            visualizarBusquedaRTree(data.center, data.geom);
+
+            // Animar árbol de traza R-Tree en el panel flotante
+            animarTrazaRTree(data);
         }
     } catch (err) {
         console.error("Error en la búsqueda:", err);
