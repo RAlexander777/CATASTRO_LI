@@ -695,6 +695,21 @@ window.buscarLotePorIdVisor = buscarLotePorIdVisor;
 // ── DOMContentLoaded ─────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
 
+    // Botón para copiar ID Catastral en modal al portapapeles
+    const btnCopyModal = document.getElementById("btn-copy-modal-id");
+    if (btnCopyModal) {
+        btnCopyModal.addEventListener("click", () => {
+            const modalPresId = document.getElementById("modal-pres-id").textContent;
+            if (modalPresId && modalPresId !== "—" && modalPresId !== "...") {
+                navigator.clipboard.writeText(modalPresId).then(() => {
+                    const originalColor = btnCopyModal.style.color;
+                    btnCopyModal.style.color = "#10b981"; // Verde neón temporal
+                    setTimeout(() => btnCopyModal.style.color = originalColor, 1000);
+                }).catch(err => console.error("Fallo al copiar:", err));
+            }
+        });
+    }
+
     // — Ciudad selector —
     const citySelector = document.getElementById("city-selector");
     if (citySelector) {

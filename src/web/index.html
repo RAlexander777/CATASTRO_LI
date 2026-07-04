@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.3">
+    <link rel="stylesheet" href="css/styles.css?v=2.10">
 </head>
 <body>
     <!-- Canvas de fondo para el mapa satelital/vectorial animado -->
@@ -21,21 +21,16 @@
     <div class="intro-container">
         
         <!-- Header Minimalista -->
-        <header class="main-header">
-            <div class="header-left">
-                <div class="brand-polygonal">
-                    <svg class="brand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.2" stroke-linejoin="round">
-                        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                        <polyline points="2 17 12 22 22 17"/>
-                        <polyline points="2 12 12 17 22 12"/>
-                    </svg>
-                    <h1>CATASTRO_LI <span class="brand-coord">[ 19S / UTM ]</span></h1>
-                </div>
-                <div class="subtitle">> ecosistema híbrido de analítica espacial y learned indexes</div>
+        <!-- Header Minimalista Centrado con Logo Grande -->
+        <header class="main-header" style="flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 1.2rem; border-bottom: 1px dashed rgba(129, 140, 248, 0.15); padding-bottom: 1.5rem; margin-bottom: 2rem; width: 100%;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.8rem; width: 100%;">
+                <img src="assets/LI_solo.png" alt="Catastro LI Logo" style="height: 110px; width: auto; object-fit: contain;" />
+                <h1 style="margin: 0; font-size: 2.8rem; background: linear-gradient(135deg, #ffffff 30%, var(--primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">CATASTRO_LI <span class="brand-coord" style="font-size: 0.85rem; vertical-align: middle;">[ 19S / UTM ]</span></h1>
+                <div class="subtitle" style="font-size: 1.1rem; margin-top: 0.2rem; text-align: center; width: 100%; justify-content: center;">> ecosistema híbrido de analítica espacial y learned indexes</div>
             </div>
             
             <!-- Botones de Ingreso e Información -->
-            <div class="header-buttons" style="display: flex; gap: 0.8rem; justify-content: center; align-items: center; margin-top: 1rem;">
+            <div class="header-buttons" style="display: flex; gap: 0.8rem; justify-content: center; align-items: center; margin-top: 0.2rem; width: 100%;">
                 <a href="/visor" class="btn-enter-hero-compact" title="Ingresar al Visor Cartográfico Proyectado">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
@@ -69,11 +64,18 @@
                 <div id="lote-preview-placeholder" class="placeholder-text">> cargando_vista...</div>
             </div>
 
+            <!-- Contenedor de cards del modo debug (ocupa todo el ancho del hero) -->
+            <div id="debug-steps-container" class="debug-steps-container"></div>
+
             <!-- Centro: Datos Minimalistas de Predio (sin tablas ni cajas ruidosas) -->
             <div class="preview-details">
-                <div class="minimal-predio-info">
+                <div class="minimal-predio-info" style="display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
                     <span id="pres-id" class="minimal-id">—</span>
-                    <div class="minimal-sub-info">
+                    <button type="button" id="btn-copy-id" class="btn-copy-minimal" title="Copiar Código Catastral" style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease; outline: none; margin-top: 0.2rem;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                </div>
+                <div class="minimal-sub-info">
                         <span id="pres-ciudad">—</span> &bull; 
                         <span id="pres-area">—</span> &bull; 
                         <span id="pres-peri">—</span>
@@ -284,6 +286,7 @@
             <button type="button" class="drawer-tab-btn active" onclick="switchDrawerTab('drawer-tab-a')">1. r-tree & gist</button>
             <button type="button" class="drawer-tab-btn" onclick="switchDrawerTab('drawer-tab-b')">2. hilbert 1d</button>
             <button type="button" class="drawer-tab-btn" onclick="switchDrawerTab('drawer-tab-c')">3. learned index</button>
+            <button type="button" class="drawer-tab-btn" onclick="switchDrawerTab('drawer-tab-d')">4. comandos</button>
         </div>
         
         <div class="drawer-content">
@@ -329,6 +332,55 @@
                     <p>Al ingresar una coordenada convertida a Hilbert, el modelo estima la posición en memoria con una cota de error máxima garantizada ($\epsilon$). La búsqueda final se reduce a una búsqueda binaria local de tamaño $2\epsilon+1$, logrando accesos veloces ($O(1)$ o $O(\log \epsilon)$) ocupando apenas el 12% de RAM en comparación al R-Tree tradicional.</p>
                 </div>
             </div>
+            
+            <!-- pestaña D: Comandos y Utilidades -->
+            <div id="drawer-tab-d" class="drawer-pane">
+                <h4 style="color: #6366f1;">// utilidades y comandos</h4>
+                
+                <div class="wiki-section">
+                    <strong>levantar base de datos y backend:</strong>
+                    <p>Inicia PostgreSQL, PostGIS y el backend de FastAPI en segundo plano.</p>
+                    <div class="wiki-command-block" style="background: rgba(5,7,12,0.8); border: 1px solid rgba(129,140,248,0.15); padding: 0.5rem; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.65rem; color: #a5b4fc;">
+                        <span>make up</span>
+                        <button type="button" class="btn-copy-command" data-cmd="make up" title="Copiar Comando" style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="wiki-section">
+                    <strong>generación procedural offline (18 ciudades):</strong>
+                    <p>Poblar la base de datos de manera local y procedimental con distorsión y rotación.</p>
+                    <div class="wiki-command-block" style="background: rgba(5,7,12,0.8); border: 1px solid rgba(129,140,248,0.15); padding: 0.5rem; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.65rem; color: #a5b4fc;">
+                        <span>python populate_all_cities.py</span>
+                        <button type="button" class="btn-copy-command" data-cmd="python populate_all_cities.py" title="Copiar Comando" style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="wiki-section">
+                    <strong>escalar base de datos catastral (clonación):</strong>
+                    <p>Escala localmente multiplicando por 7 el volumen de datos catastrales (para estrés de Learned Index).</p>
+                    <div class="wiki-command-block" style="background: rgba(5,7,12,0.8); border: 1px solid rgba(129,140,248,0.15); padding: 0.5rem; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.65rem; color: #a5b4fc;">
+                        <span>python scale_db.py</span>
+                        <button type="button" class="btn-copy-command" data-cmd="python scale_db.py" title="Copiar Comando" style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="wiki-section">
+                    <strong>ingesta real overpass api (24 zonas):</strong>
+                    <p>Descarga y procesa en tiempo real lotes desde OpenStreetMap para toda la región.</p>
+                    <div class="wiki-command-block" style="background: rgba(5,7,12,0.8); border: 1px solid rgba(129,140,248,0.15); padding: 0.5rem; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.65rem; color: #a5b4fc;">
+                        <span>python ingest_peru_cities.py</span>
+                        <button type="button" class="btn-copy-command" data-cmd="python ingest_peru_cities.py" title="Copiar Comando" style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -338,6 +390,6 @@
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Cargar app.js con buster de caché actualizado -->
-    <script src="js/app.js?v=2.2"></script>
+    <script src="js/app.js?v=2.9"></script>
 </body>
 </html>

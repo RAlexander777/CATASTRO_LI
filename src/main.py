@@ -88,3 +88,4 @@ def serve_map():
 
 app.mount("/css", StaticFiles(directory=os.path.join(WEB_DIR, "css")), name="css")
 app.mount("/js", StaticFiles(directory=os.path.join(WEB_DIR, "js")), name="js")
+app.mount("/assets", StaticFiles(directory=os.path.join(WEB_DIR, "assets")), name="assets")

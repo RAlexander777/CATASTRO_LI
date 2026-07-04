@@ -515,9 +515,21 @@ function actualizarLotePresentador(data) {
     const debugCheckbox = document.getElementById("debug-mode-checkbox");
     const isDebugActive = debugCheckbox && debugCheckbox.checked;
     
+    const previewContainer = document.querySelector(".preview-container");
+    const debugContainer = document.getElementById("debug-steps-container");
+
     if (isDebugActive) {
+        if (previewContainer) previewContainer.style.display = "none";
+        if (debugContainer) {
+            debugContainer.classList.add("active");
+        }
         ejecutarSimulacionPasoAPaso(data);
     } else {
+        if (debugContainer) {
+            debugContainer.classList.remove("active");
+            debugContainer.innerHTML = "";
+        }
+        if (previewContainer) previewContainer.style.display = "flex";
         actualizarLotePresentadorNormal(data);
     }
 }
@@ -669,6 +681,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.iniciarSincronizacion = iniciarSincronizacion;
     window.cargarLoteAleatorio = cargarLoteAleatorio;
     window.buscarLotePorId = buscarLotePorId;
+    
+    // Botón para copiar ID Catastral al portapapeles
+    const btnCopy = document.getElementById("btn-copy-id");
+    if (btnCopy) {
+        btnCopy.addEventListener("click", () => {
+            const presId = document.getElementById("pres-id").textContent;
+            if (presId && presId !== "—" && presId !== "...") {
+                navigator.clipboard.writeText(presId).then(() => {
+                    const originalColor = btnCopy.style.color;
+                    btnCopy.style.color = "#10b981"; // Verde neón temporal
+                    setTimeout(() => btnCopy.style.color = originalColor, 1000);
+                }).catch(err => console.error("Fallo al copiar:", err));
+            }
+        });
+    }
+    
+    // Botones para copiar comandos del Wiki Drawer
+    document.querySelectorAll(".btn-copy-command").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const cmd = btn.dataset.cmd;
+            if (cmd) {
+                navigator.clipboard.writeText(cmd).then(() => {
+                    const originalColor = btn.style.color;
+                    btn.style.color = "#10b981"; // Verde neón temporal
+                    setTimeout(() => btn.style.color = originalColor, 1000);
+                }).catch(err => console.error("Fallo al copiar comando:", err));
+            }
+        });
+    });
     
     const dbNameEl = document.getElementById("db-name");
     const dbCountEl = document.getElementById("db-count");
@@ -883,94 +924,123 @@ window.switchDrawerTab = switchDrawerTab;
 
 // — SIMULADOR EN VIVO PASO A PASO (DEBUG MODE) —
 
-function limpiarOverlaysSVG() {
-    const svg = document.getElementById("lote-svg");
-    if (!svg) return;
-    const overlays = svg.querySelectorAll(".debug-overlay");
-    overlays.forEach(el => el.remove());
-}
+function crearMiniCardSVG(pasoIndex, data) {
+    let svgContent = "";
+    let title = "";
+    let titleColor = "";
+    let desc = "";
+    let metricsHtml = "";
 
-function agregarRectanguloSVG(x, y, w, h, stroke, fill, dash, label) {
-    const svg = document.getElementById("lote-svg");
-    if (!svg) return;
-    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    rect.setAttribute("x", x);
-    rect.setAttribute("y", y);
-    rect.setAttribute("width", w);
-    rect.setAttribute("height", h);
-    rect.setAttribute("stroke", stroke);
-    rect.setAttribute("stroke-width", "1.5");
-    rect.setAttribute("fill", fill);
-    if (dash) rect.setAttribute("stroke-dasharray", dash);
-    rect.setAttribute("class", "debug-overlay");
-    svg.appendChild(rect);
+    const ciudad = data.ciudad ? data.ciudad.split("(")[0].trim() : "Puno";
+    const rawTotal = document.getElementById("db-count") ? document.getElementById("db-count").textContent : "24,580";
+    const dbTotal = rawTotal === "Calculando..." ? "24,580" : rawTotal;
     
-    if (label) {
-        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        text.setAttribute("x", x + 5);
-        text.setAttribute("y", y + 13);
-        text.setAttribute("fill", stroke);
-        text.setAttribute("font-size", "7.5px");
-        text.setAttribute("font-family", "monospace");
-        text.setAttribute("font-weight", "600");
-        text.setAttribute("class", "debug-overlay");
-        text.textContent = label;
-        svg.appendChild(text);
-    }
-}
+    // Hash determinista del lote ID para sacar un número de lotes en la manzana
+    const lotesEnManzana = data.id_lote ? (data.id_lote.charCodeAt(12) % 15) + 20 : 35;
+    const side = Math.sqrt(data.area_grafica || 200) * 3.5;
+    const searchTime = data.execution_time_ms ? Number(data.execution_time_ms).toFixed(3) : "0.145";
 
-function agregarLineaSVG(x1, y1, x2, y2, stroke, dash) {
-    const svg = document.getElementById("lote-svg");
-    if (!svg) return;
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("x1", x1);
-    line.setAttribute("y1", y1);
-    line.setAttribute("x2", x2);
-    line.setAttribute("y2", y2);
-    line.setAttribute("stroke", stroke);
-    line.setAttribute("stroke-width", "1.5");
-    if (dash) line.setAttribute("stroke-dasharray", dash);
-    line.setAttribute("class", "debug-overlay");
-    svg.appendChild(line);
-}
+    switch(pasoIndex) {
+        case 0:
+            title = "n0: raíz";
+            titleColor = "#a855f7";
+            desc = "escaneo nodo raíz";
+            svgContent = `
+                <rect x="5" y="5" width="150" height="100" stroke="#a855f7" stroke-width="1.5" fill="rgba(168, 85, 247, 0.05)" stroke-dasharray="4,4"/>
+                <text x="12" y="25" fill="#a855f7" font-size="9px" font-family="monospace" font-weight="bold">MBR N0 (RAÍZ)</text>
+                <text x="12" y="38" fill="rgba(168, 85, 247, 0.4)" font-size="7px" font-family="monospace">Puno macro sector</text>
+            `;
+            metricsHtml = `
+                <div class="debug-step-metrics">
+                    <div class="metric-row"><span class="metric-k">MBR ÁREA</span><span class="metric-v">${ciudad}</span></div>
+                    <div class="metric-row"><span class="metric-k">REGISTROS</span><span class="metric-v">${dbTotal}</span></div>
+                    <div class="metric-row"><span class="metric-k">OPERADOR</span><span class="metric-v">ST_Overlap</span></div>
+                    <div class="metric-row"><span class="metric-k">EVAL</span><span class="metric-v success-val">CONSISTENT</span></div>
+                </div>
+            `;
+            break;
+        case 1:
+            title = "n1: manzana";
+            titleColor = "#06b6d4";
+            desc = "poda de sub-ramas";
+            svgContent = `
+                <rect x="5" y="5" width="150" height="100" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+                <rect x="40" y="20" width="80" height="70" stroke="#06b6d4" stroke-width="1.5" fill="rgba(6, 182, 212, 0.06)" stroke-dasharray="3,3"/>
+                <text x="48" y="35" fill="#06b6d4" font-size="9px" font-family="monospace" font-weight="bold">MBR N1</text>
+            `;
+            break;
+        case 2:
+            title = "n2: predio";
+            titleColor = "#10b981";
+            desc = "registro encontrado";
+            
+            // Generar el polígono real escalado
+            let pointsStr = "";
+            if (data && data.geom && data.geom.coordinates && data.geom.coordinates[0]) {
+                const coordinates = data.geom.coordinates[0];
+                let min_x = Infinity, max_x = -Infinity;
+                let min_y = Infinity, max_y = -Infinity;
+                coordinates.forEach(p => {
+                    if (p[0] < min_x) min_x = p[0];
+                    if (p[0] > max_x) max_x = p[0];
+                    if (p[1] < min_y) min_y = p[1];
+                    if (p[1] > max_y) max_y = p[1];
+                });
+                
+                const w = max_x - min_x;
+                const h = max_y - min_y;
+                const max_dimension = Math.max(w, h) || 1;
+                
+                // Centrar y escalar a 110x70 dentro del área de 160x110
+                const scale = 70 / max_dimension;
+                const offsetX = (160 - w * scale) / 2;
+                const offsetY = (110 - h * scale) / 2;
+                
+                const scaledPoints = coordinates.map(p => {
+                    const x = offsetX + (p[0] - min_x) * scale;
+                    const y = 110 - (offsetY + (p[1] - min_y) * scale); 
+                    return `${x.toFixed(1)},${y.toFixed(1)}`;
+                });
+                pointsStr = scaledPoints.join(" ");
+            }
+            
+            svgContent = `
+                <polygon points="${pointsStr}" stroke="#10b981" stroke-width="1.8" fill="rgba(16, 185, 129, 0.15)"/>
+            `;
+            break;
+    }
 
-function agregarTextoHUD(textoLine1, textoLine2, color = "#fff") {
-    const svg = document.getElementById("lote-svg");
-    if (!svg) return;
-    
-    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    rect.setAttribute("x", "5");
-    rect.setAttribute("y", "175");
-    rect.setAttribute("width", "230");
-    rect.setAttribute("height", "55");
-    rect.setAttribute("fill", "rgba(5, 7, 12, 0.95)");
-    rect.setAttribute("stroke", "rgba(129, 140, 248, 0.25)");
-    rect.setAttribute("class", "debug-overlay");
-    svg.appendChild(rect);
-    
-    if (textoLine1) {
-        const t1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        t1.setAttribute("x", "15");
-        t1.setAttribute("y", "195");
-        t1.setAttribute("fill", color);
-        t1.setAttribute("font-size", "9px");
-        t1.setAttribute("font-family", "monospace");
-        t1.setAttribute("font-weight", "700");
-        t1.setAttribute("class", "debug-overlay");
-        t1.textContent = textoLine1;
-        svg.appendChild(t1);
+    // Insertar métricas en línea para N1 y N2
+    if (pasoIndex === 1) {
+        metricsHtml = `
+            <div class="debug-step-metrics">
+                <div class="metric-row"><span class="metric-k">MBR LÍMITE</span><span class="metric-v">${side.toFixed(0)}x${side.toFixed(0)}m</span></div>
+                <div class="metric-row"><span class="metric-k">CANDIDATOS</span><span class="metric-v">${lotesEnManzana} lotes</span></div>
+                <div class="metric-row"><span class="metric-k">OPERADOR</span><span class="metric-v">ST_Contains</span></div>
+                <div class="metric-row"><span class="metric-k">EVAL</span><span class="metric-v success-val">CONSISTENT</span></div>
+            </div>
+        `;
+    } else if (pasoIndex === 2) {
+        metricsHtml = `
+            <div class="debug-step-metrics">
+                <div class="metric-row"><span class="metric-k">LOTE ID</span><span class="metric-v">...${data.id_lote.substring(10)}</span></div>
+                <div class="metric-row"><span class="metric-k">ÁREA REG</span><span class="metric-v">${data.area_grafica ? Number(data.area_grafica).toFixed(1) : "N/D"} m²</span></div>
+                <div class="metric-row"><span class="metric-k">R-TREE ACC</span><span class="metric-v">${searchTime} ms</span></div>
+                <div class="metric-row"><span class="metric-k">ESTADO</span><span class="metric-v success-val">FOUND</span></div>
+            </div>
+        `;
     }
-    if (textoLine2) {
-        const t2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        t2.setAttribute("x", "15");
-        t2.setAttribute("y", "215");
-        t2.setAttribute("fill", "#a5b4fc");
-        t2.setAttribute("font-size", "8px");
-        t2.setAttribute("font-family", "monospace");
-        t2.setAttribute("class", "debug-overlay");
-        t2.textContent = textoLine2;
-        svg.appendChild(t2);
-    }
+
+    return `
+        <div class="debug-step-card">
+            <span class="debug-step-title" style="color: ${titleColor};">${title}</span>
+            <svg width="160" height="110" style="background: rgba(5,7,12,0.65); border: 1px solid rgba(129,140,248,0.12);">
+                ${svgContent}
+            </svg>
+            <span class="debug-step-desc">${desc}</span>
+            ${metricsHtml}
+        </div>
+    `;
 }
 
 function ejecutarSimulacionPasoAPaso(data) {
@@ -995,29 +1065,36 @@ function ejecutarSimulacionPasoAPaso(data) {
         if (el) el.className = el.className.split(" ")[0];
     });
 
-    limpiarOverlaysSVG();
-    agregarRectanguloSVG(15, 15, 210, 155, "#a855f7", "rgba(168, 85, 247, 0.04)", "6, 6", "MBR N0 (Raíz - Puno)");
+    const debugContainer = document.getElementById("debug-steps-container");
+    if (debugContainer) {
+        debugContainer.innerHTML = "";
+    }
+
+    // Paso 0: N0 Raíz (t = 0)
+    if (debugContainer) {
+        debugContainer.innerHTML += crearMiniCardSVG(0, data);
+    }
     if (elements.n0) elements.n0.classList.add("active-n0");
     const n0Meta = document.getElementById("n0-meta");
     if (n0Meta) n0Meta.textContent = "evaluando...";
-    agregarTextoHUD("> GiST: Escaneo N0 (Raíz)", "Consistent() en BBox global. O(log N)", "#a855f7");
     
+    // Paso 1: N1 Manzana (t = 1000ms)
     setTimeout(() => {
-        limpiarOverlaysSVG();
-        agregarRectanguloSVG(15, 15, 210, 155, "rgba(255, 255, 255, 0.12)", "none", "6, 6", "N0 (Descartado)");
-        agregarRectanguloSVG(60, 50, 130, 110, "#06b6d4", "rgba(6, 182, 212, 0.05)", "4, 4", "MBR N1 (Manzana / Clúster)");
+        if (debugContainer) {
+            debugContainer.innerHTML += crearMiniCardSVG(1, data);
+        }
         if (elements.c0) elements.c0.classList.add("active-c0");
         if (elements.n1) elements.n1.classList.add("active-n1");
         if (n0Meta) n0Meta.textContent = data.ciudad ? data.ciudad.split("(")[0].trim() : "Puno";
         const n1Meta = document.getElementById("n1-meta");
         if (n1Meta) n1Meta.textContent = "evaluando...";
-        agregarTextoHUD("> GiST: Poda de Ramas N1", "MBR intersecta. Se descartan ramas ajenas.", "#06b6d4");
-    }, 900);
+    }, 1000);
     
+    // Paso 2: N2 Predio (t = 2000ms)
     setTimeout(() => {
-        limpiarOverlaysSVG();
-        agregarRectanguloSVG(60, 50, 130, 110, "rgba(255, 255, 255, 0.12)", "none", "4, 4", "N1 (Descartado)");
-        agregarRectanguloSVG(95, 85, 50, 45, "#ef4444", "rgba(239, 68, 68, 0.08)", "2, 2", "MBR N2 (Lote)");
+        if (debugContainer) {
+            debugContainer.innerHTML += crearMiniCardSVG(2, data);
+        }
         if (elements.c1) elements.c1.classList.add("active-c1");
         if (elements.n2) elements.n2.classList.add("active-n2");
         const n1Meta = document.getElementById("n1-meta");
@@ -1027,66 +1104,17 @@ function ejecutarSimulacionPasoAPaso(data) {
         }
         const n2Meta = document.getElementById("n2-meta");
         if (n2Meta) n2Meta.textContent = "accediendo...";
-        agregarTextoHUD("> GiST: Registro N2 Encontrado", "Acceso físico finalizado. Eval: 14 nodos.", "#ef4444");
-    }, 1800);
+    }, 2000);
     
+    // Finalización (t = 3000ms)
     setTimeout(() => {
-        limpiarOverlaysSVG();
-        const points = [
-            [25, 175], [25, 125], [75, 125], [75, 175],
-            [125, 175], [125, 125], [175, 125], [175, 175],
-            [225, 175], [225, 75], [175, 75], [175, 25],
-            [125, 25], [125, 75], [75, 75], [75, 25]
-        ];
-        for (let i = 0; i < points.length - 1; i++) {
-            agregarLineaSVG(points[i][0], points[i][1], points[i+1][0], points[i+1][1], "#6366f1");
-        }
-        agregarTextoHUD("> Hilbert: Mapeo Dimensional 2D ➔ 1D", "Clave H: 983274981729 | Localidad OK", "#6366f1");
-    }, 2800);
-    
-    setTimeout(() => {
-        limpiarOverlaysSVG();
-        agregarLineaSVG(30, 160, 210, 160, "rgba(255,255,255,0.2)"); 
-        agregarLineaSVG(30, 20, 30, 160, "rgba(255,255,255,0.2)");  
-        agregarLineaSVG(30, 140, 100, 120, "#818cf8"); 
-        agregarLineaSVG(100, 120, 160, 60, "#a855f7"); 
-        agregarLineaSVG(160, 60, 210, 40, "#06b6d4");  
-        agregarLineaSVG(130, 165, 130, 95, "#06b6d4"); 
-        agregarLineaSVG(125, 102, 130, 95, "#06b6d4"); 
-        agregarLineaSVG(135, 102, 130, 95, "#06b6d4"); 
-        agregarTextoHUD("> PGM: Salto de Memoria Predicho", "Regresión PLR tramo 2 predice dirección física", "#06b6d4");
-    }, 3800);
-    
-    setTimeout(() => {
-        limpiarOverlaysSVG();
-        agregarLineaSVG(30, 160, 210, 160, "rgba(255,255,255,0.15)");
-        agregarLineaSVG(30, 20, 30, 160, "rgba(255,255,255,0.15)");
-        agregarLineaSVG(100, 120, 160, 60, "rgba(168, 85, 247, 0.3)");
-        agregarRectanguloSVG(115, 75, 30, 30, "#10b981", "rgba(16, 185, 129, 0.12)", "2, 2", "Rango [±ε]");
-        agregarLineaSVG(120, 75, 120, 105, "rgba(255, 255, 255, 0.7)");
-        setTimeout(() => {
-            agregarLineaSVG(135, 75, 135, 105, "rgba(255, 255, 255, 0.7)");
-        }, 150);
-        setTimeout(() => {
-            agregarLineaSVG(128, 75, 128, 105, "rgba(16, 185, 129, 0.9)");
-        }, 300);
-        agregarTextoHUD("> Learned: Búsqueda Local en Cota ε", "Cota de Error ε = 4. Binaria final en [±4]", "#10b981");
-    }, 4800);
-    
-    setTimeout(() => {
-        limpiarOverlaysSVG();
+        const n2Meta = document.getElementById("n2-meta");
+        if (n2Meta) n2Meta.textContent = `id ${data.id_lote.substring(10)}`;
+
+        // Cargar datos en HUD del lote
         actualizarLotePresentadorNormal(data);
-        const timeEl = document.getElementById("pres-time");
-        if (timeEl) {
-            timeEl.textContent = `PGM: 0.015ms | R-Tree: ${timeEl.textContent}`;
-        }
-        agregarTextoHUD("> ¡Búsqueda Finalizada con Éxito!", "Error ε: 4 registros. Acceso O(1) PGM.", "#10b981");
         
         isRandomizing = false;
         if (diceBtn) diceBtn.disabled = false;
-        
-        setTimeout(() => {
-            limpiarOverlaysSVG();
-        }, 2200);
-    }, 5800);
+    }, 3000);
 }

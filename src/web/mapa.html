@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="css/styles.css?v=2.8" />
+    <link rel="stylesheet" href="css/styles.css?v=2.14" />
 </head>
 <body class="map-body">
 
@@ -23,6 +23,12 @@
         <div class="loader-text">> cargando_sector...</div>
     </div>
 
+    <!-- Logo y Título Flotante en la Esquina Superior Izquierda -->
+    <div class="visor-floating-brand" style="position: absolute; top: 15px; left: 15px; z-index: 1000; display: flex; align-items: center; gap: 0.5rem; background: rgba(11, 15, 25, 0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(129, 140, 248, 0.2); padding: 0.5rem 0.8rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55); border-radius: 4px; pointer-events: none;">
+        <img src="assets/LI_solo.png" alt="Catastro LI Logo" style="height: 22px; width: auto; object-fit: contain; filter: drop-shadow(0 0 6px rgba(129, 140, 248, 0.5));" />
+        <span style="font-family: 'Fira Code', monospace; font-size: 0.8rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 1px; filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.15));">catastro_li</span>
+    </div>
+
     <!-- Mapa principal -->
     <div id="map"></div>
 
@@ -30,13 +36,7 @@
     <aside id="visor-panel" class="visor-panel">
 
         <!-- Cabecera del panel -->
-        <div class="panel-header">
-            <div class="panel-logo">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8">
-                    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
-                </svg>
-                <span>catastro_li</span>
-            </div>
+        <div class="panel-header" style="justify-content: flex-end;">
             <a href="/" class="panel-back" title="Volver al terminal">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="15 18 9 12 15 6"/>
@@ -192,7 +192,15 @@
                     inspección_predio
                 </h3>
                 <div class="modal-grid">
-                    <div class="modal-item"><strong>ID Catastral</strong><span id="modal-pres-id">—</span></div>
+                    <div class="modal-item">
+                        <strong>ID Catastral</strong>
+                        <div style="display: flex; align-items: center; gap: 0.3rem;">
+                            <span id="modal-pres-id">—</span>
+                            <button type="button" id="btn-copy-modal-id" class="btn-copy-minimal" title="Copiar Código Catastral" style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease; outline: none;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                    </div>
                     <div class="modal-item"><strong>Localidad</strong><span id="modal-pres-ciudad">—</span></div>
                     <div class="modal-item"><strong>Área (m²)</strong><span id="modal-pres-area">—</span></div>
                     <div class="modal-item"><strong>Perímetro (m)</strong><span id="modal-pres-peri">—</span></div>
@@ -204,6 +212,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="js/map.js?v=2.3"></script>
+    <script src="js/map.js?v=2.9"></script>
 </body>
 </html>
