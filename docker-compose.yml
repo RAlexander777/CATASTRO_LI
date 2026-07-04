@@ -20,6 +20,7 @@ services:
       - "8010:8000"
     volumes:
       - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - DATABASE_URL=postgresql://rodrigo:catastro2026@db:5432/catastro_li
     depends_on:

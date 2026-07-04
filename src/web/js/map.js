@@ -16,6 +16,7 @@ L.control.zoom({ position: 'bottomright' }).addTo(map);
 let currentStrokeColor = "#818cf8";
 let currentFillColor   = "#3730a3";
 let currentFillOpacity = 0.40;
+let ultimoLoteCentro = null;
 
 
 // Estilos de Mapas Base definidos
@@ -182,14 +183,17 @@ function cerrarLoteModal() {
 
 window.cerrarLoteModal = cerrarLoteModal;
 
-async function abrirLoteModal(idLote) {
+async function abrirLoteModal(idLote, learnedStats = null, rtreeSearchTimeMs = null) {
     const modal = document.getElementById("lote-modal");
     const placeholder = document.getElementById("modal-lote-placeholder");
     const polygon = document.getElementById("modal-lote-polygon");
+    const statsContainer = document.getElementById("modal-learned-stats-container");
     
     if (modal) modal.classList.add("active");
     if (placeholder) placeholder.textContent = "> cargando_geometria...";
     if (polygon) polygon.setAttribute("points", "");
+    
+    if (statsContainer) statsContainer.style.display = "none";
     
     // Limpiar campos informativos
     document.getElementById("modal-pres-id").textContent = "-";
@@ -218,8 +222,20 @@ async function abrirLoteModal(idLote) {
         animarTextoTerminal(document.getElementById("modal-pres-ciudad"), data.ciudad || "Sector Sintético", 180);
         
         // Actualizar HUD de rendimiento con la velocidad de búsqueda
-        const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
-        actualizarHudRendimiento(searchTime);
+        if (learnedStats) {
+            const rtreeMs = rtreeSearchTimeMs || learnedStats.rtree_search_time_ms;
+            actualizarHudRendimientoLearned(learnedStats.learned_search_time_ms, rtreeMs);
+            if (statsContainer) {
+                statsContainer.style.display = "block";
+                document.getElementById("modal-learned-key").textContent = learnedStats.hilbert_key;
+                document.getElementById("modal-learned-segments").textContent = `${learnedStats.segments_count} segmentos`;
+                document.getElementById("modal-learned-range").textContent = `[${learnedStats.pgm_search_range.join(', ')}] (ε=${learnedStats.epsilon})`;
+                document.getElementById("modal-learned-steps").textContent = `${learnedStats.binary_steps} iteraciones`;
+            }
+        } else {
+            const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
+            actualizarHudRendimiento(searchTime);
+        }
         
         // Visualizar niveles del árbol R-Tree (Bounding Boxes MBR)
         visualizarBusquedaRTree(data.center, data.geom);
@@ -606,7 +622,11 @@ function animarTrazaRTree(data) {
 function actualizarHudRendimiento(timeMs) {
     const hudVal = document.getElementById("hud-time-val");
     const hudContainer = document.getElementById("r-tree-performance-hud");
+    const hudLabel = document.querySelector("#r-tree-performance-hud .hud-label");
+    const hudUnit = document.querySelector("#r-tree-performance-hud .hud-unit");
     
+    if (hudLabel) hudLabel.textContent = "r_tree:";
+    if (hudUnit) hudUnit.textContent = "ms";
     if (hudVal) {
         hudVal.textContent = Number(timeMs).toFixed(3);
     }
@@ -618,8 +638,28 @@ function actualizarHudRendimiento(timeMs) {
     }
 }
 
+function actualizarHudRendimientoLearned(learnedMs, rtreeMs) {
+    const hudVal = document.getElementById("hud-time-val");
+    const hudContainer = document.getElementById("r-tree-performance-hud");
+    const hudLabel = document.querySelector("#r-tree-performance-hud .hud-label");
+    const hudUnit = document.querySelector("#r-tree-performance-hud .hud-unit");
+    
+    if (hudLabel) hudLabel.textContent = "pgm_li:";
+    if (hudUnit) hudUnit.textContent = "";
+    if (hudVal) {
+        hudVal.innerHTML = `<span style="color: #10b981;">${Number(learnedMs).toFixed(3)}ms</span> <span style="color: var(--text-muted); font-size:0.68rem; font-weight:normal; margin-left:0.2rem;">R-TREE ACC:</span> <span style="color: #a855f7;">${Number(rtreeMs).toFixed(3)}ms</span>`;
+    }
+    
+    if (hudContainer) {
+        hudContainer.classList.remove("hud-flash");
+        void hudContainer.offsetWidth;
+        hudContainer.classList.add("hud-flash");
+    }
+}
+
 // ── Búsqueda y Aleatorización en el Visor ─────────────────────────────────
 async function cargarLoteAleatorioVisor() {
+    await coldCacheFlushVisor();
     const diceBtn = document.querySelector(".btn-dice");
     if (diceBtn) {
         diceBtn.disabled = true;
@@ -634,6 +674,26 @@ async function cargarLoteAleatorioVisor() {
         
         if (data.center) {
             mostrarLoteEnVisor(data);
+
+            // Fetch R-Tree + PGM stats en paralelo para mostrar métricas reales
+            Promise.allSettled([
+                fetch(`/api/search/rtree?lat=${data.center.lat}&lon=${data.center.lon}`),
+                fetch(`/api/search/learned?lat=${data.center.lat}&lon=${data.center.lon}`)
+            ]).then(async ([rtreeRes, learnedRes]) => {
+                let learnedMs = null;
+                let rtreeMs = null;
+                if (rtreeRes.status === 'fulfilled' && rtreeRes.value.ok) {
+                    const result = await rtreeRes.value.json();
+                    rtreeMs = result.stats.rtree_search_time_ms;
+                }
+                if (learnedRes.status === 'fulfilled' && learnedRes.value.ok) {
+                    const result = await learnedRes.value.json();
+                    learnedMs = result.stats.learned_search_time_ms;
+                }
+                if (learnedMs !== null && rtreeMs !== null) {
+                    actualizarHudRendimientoLearned(learnedMs, rtreeMs);
+                }
+            }).catch(() => {});
 
             // Actualizar el selector de ciudad si la ciudad del lote existe en el select
             if (data.ciudad) {
@@ -660,6 +720,7 @@ async function cargarLoteAleatorioVisor() {
 window.cargarLoteAleatorioVisor = cargarLoteAleatorioVisor;
 
 async function buscarLotePorIdVisor() {
+    await coldCacheFlushVisor();
     const idInput = document.getElementById("search-lote-input").value.trim();
     if (!idInput || idInput.length !== 14) {
         Swal.fire({
@@ -705,6 +766,25 @@ async function buscarLotePorIdVisor() {
         
         if (data.center) {
             mostrarLoteEnVisor(data);
+
+            Promise.allSettled([
+                fetch(`/api/search/rtree?lat=${data.center.lat}&lon=${data.center.lon}`),
+                fetch(`/api/search/learned?lat=${data.center.lat}&lon=${data.center.lon}`)
+            ]).then(async ([rtreeRes, learnedRes]) => {
+                let learnedMs = null;
+                let rtreeMs = null;
+                if (rtreeRes.status === 'fulfilled' && rtreeRes.value.ok) {
+                    const result = await rtreeRes.value.json();
+                    rtreeMs = result.stats.rtree_search_time_ms;
+                }
+                if (learnedRes.status === 'fulfilled' && learnedRes.value.ok) {
+                    const result = await learnedRes.value.json();
+                    learnedMs = result.stats.learned_search_time_ms;
+                }
+                if (learnedMs !== null && rtreeMs !== null) {
+                    actualizarHudRendimientoLearned(learnedMs, rtreeMs);
+                }
+            }).catch(() => {});
         }
     } catch (err) {
         console.error("Error en la búsqueda:", err);
@@ -864,6 +944,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+    // — Toggle unificado de trazas en el visor —
+    const btnToggleVisorTraces = document.getElementById("btn-toggle-traces-visor");
+    const visorTraceWidgets = document.querySelectorAll("#visor-dual-traces .r-tree-traversal-widget, #visor-dual-traces .pgm-traversal-widget");
+    
+    if (btnToggleVisorTraces && visorTraceWidgets.length) {
+        btnToggleVisorTraces.addEventListener("click", () => {
+            let anyExpanded = false;
+            visorTraceWidgets.forEach(w => {
+                const was = w.classList.toggle("expanded");
+                if (was) anyExpanded = true;
+            });
+            btnToggleVisorTraces.textContent = anyExpanded
+                ? "> ocultar_trazas_busqueda"
+                : "> mostrar_trazas_busqueda";
+        });
+    }
+
+    // — Buscar lote por coordenadas al hacer clic en el mapa si debug está activo —
+    map.on('click', async function (e) {
+        const debugCheckbox = document.getElementById("debug-mode-checkbox");
+        const isDebugActive = debugCheckbox && debugCheckbox.checked;
+        if (!isDebugActive) return;
+        
+        const lat = e.latlng.lat;
+        const lon = e.latlng.lng;
+        
+        console.log(`[Búsqueda Unificada] Geolocalización: lat=${lat}, lon=${lon}`);
+        
+        const hudContainer = document.getElementById("r-tree-performance-hud");
+        if (hudContainer) hudContainer.classList.add("hud-flash");
+        
+        await buscarLoteUnificadoVisor(lat, lon);
+    });
+
     // — Stats iniciales —
     actualizarStats();
 });
@@ -872,6 +986,9 @@ document.addEventListener("DOMContentLoaded", () => {
 inicializarVisor();
 
 function mostrarLoteEnVisor(data) {
+    if (data && data.center) {
+        ultimoLoteCentro = data.center;
+    }
     const debugCheckbox = document.getElementById("debug-mode-checkbox");
     const isDebugActive = debugCheckbox && debugCheckbox.checked;
 
@@ -893,6 +1010,37 @@ function ejecutarSimulacionNormalVisor(data) {
     actualizarHudRendimiento(searchTime);
     visualizarBusquedaRTree(data.center, data.geom);
     animarTrazaRTree(data);
+    animarTrazaPGM(data);
+}
+
+function animarTrazaPGM(data) {
+    const pgmMetas = {
+        n0: document.getElementById("pgm-n0-meta"),
+        n1: document.getElementById("pgm-n1-meta"),
+        n2: document.getElementById("pgm-n2-meta")
+    };
+    
+    if (pgmMetas.n0) pgmMetas.n0.textContent = "hilbert_val";
+    if (pgmMetas.n1) pgmMetas.n1.textContent = "modelo_lineal";
+    if (pgmMetas.n2) pgmMetas.n2.textContent = "rango_ε";
+
+    const elements = {
+        n0: document.getElementById("pgm-n0"),
+        c0: document.getElementById("pgm-c0"),
+        n1: document.getElementById("pgm-n1"),
+        c1: document.getElementById("pgm-c1"),
+        n2: document.getElementById("pgm-n2")
+    };
+    
+    Object.values(elements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0];
+    });
+
+    setTimeout(() => { if (elements.n0) elements.n0.classList.add("active-pgm-n0"); }, 50);
+    setTimeout(() => { if (elements.c0) elements.c0.classList.add("active-pgm-c0"); }, 180);
+    setTimeout(() => { if (elements.n1) elements.n1.classList.add("active-pgm-n1"); }, 300);
+    setTimeout(() => { if (elements.c1) elements.c1.classList.add("active-pgm-c1"); }, 420);
+    setTimeout(() => { if (elements.n2) elements.n2.classList.add("active-pgm-n2"); }, 550);
 }
 
 function ejecutarSimulacionPasoAPasoVisor(data) {
@@ -908,7 +1056,24 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
     const lat = Number(data.center.lat);
     const lon = Number(data.center.lon);
     
-    // Resetear clases de animación del panel flotante
+    // Fetch R-Tree + PGM stats in background for dual debug
+    let learnedStats = null;
+    let realRtreeTime = null;
+    Promise.allSettled([
+        fetch(`/api/search/rtree?lat=${lat}&lon=${lon}`),
+        fetch(`/api/search/learned?lat=${lat}&lon=${lon}`)
+    ]).then(async ([rtreeRes, learnedRes]) => {
+        if (rtreeRes.status === 'fulfilled' && rtreeRes.value.ok) {
+            const result = await rtreeRes.value.json();
+            realRtreeTime = result.stats.rtree_search_time_ms;
+        }
+        if (learnedRes.status === 'fulfilled' && learnedRes.value.ok) {
+            const result = await learnedRes.value.json();
+            learnedStats = result.stats;
+        }
+    }).catch(() => {});
+    
+    // Resetear clases de animación del panel flotante (R-Tree)
     const elements = {
         n0: document.getElementById("r-tree-n0"),
         c0: document.getElementById("r-tree-c0"),
@@ -919,6 +1084,18 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
     Object.values(elements).forEach(el => {
         if (el) el.className = el.className.split(" ")[0];
     });
+
+    // Resetear clases de animación PGM
+    const pgmElements = {
+        n0: document.getElementById("pgm-n0"),
+        c0: document.getElementById("pgm-c0"),
+        n1: document.getElementById("pgm-n1"),
+        c1: document.getElementById("pgm-c1"),
+        n2: document.getElementById("pgm-n2")
+    };
+    Object.values(pgmElements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0];
+    });
     
     const n0Meta = document.getElementById("n0-meta");
     const n1Meta = document.getElementById("n1-meta");
@@ -926,6 +1103,13 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
     if (n0Meta) n0Meta.textContent = "evaluando...";
     if (n1Meta) n1Meta.textContent = "sector_cluster";
     if (n2Meta) n2Meta.textContent = "lote_id";
+
+    const pgmN0Meta = document.getElementById("pgm-n0-meta");
+    const pgmN1Meta = document.getElementById("pgm-n1-meta");
+    const pgmN2Meta = document.getElementById("pgm-n2-meta");
+    if (pgmN0Meta) pgmN0Meta.textContent = "evaluando...";
+    if (pgmN1Meta) pgmN1Meta.textContent = "predicting...";
+    if (pgmN2Meta) pgmN2Meta.textContent = "searching...";
     
     // Zoom out inicial a escala macro
     map.flyTo([lat, lon], 15, { duration: 0.8 });
@@ -950,6 +1134,10 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
         
         if (elements.n0) elements.n0.classList.add("active-n0");
         if (n0Meta) n0Meta.textContent = "evaluando...";
+
+        // PGM paso 0
+        if (pgmElements.n0) pgmElements.n0.classList.add("active-pgm-n0");
+        if (pgmN0Meta) pgmN0Meta.textContent = "hilbert_key";
     }, 900);
     
     // Paso 2: Nodo Interno N1 (Manzana)
@@ -978,6 +1166,11 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
         if (elements.n1) elements.n1.classList.add("active-n1");
         if (n0Meta) n0Meta.textContent = data.ciudad ? data.ciudad.split("(")[0].trim() : "Puno";
         if (n1Meta) n1Meta.textContent = "evaluando...";
+
+        // PGM paso 1
+        if (pgmElements.c0) pgmElements.c0.classList.add("active-pgm-c0");
+        if (pgmElements.n1) pgmElements.n1.classList.add("active-pgm-n1");
+        if (pgmN1Meta) pgmN1Meta.textContent = "modelo_lineal";
     }, 2100);
     
     // Paso 3: Lote N2
@@ -1007,10 +1200,109 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
             n1Meta.textContent = `bbox ${side.toFixed(0)}x${side.toFixed(0)}m`;
         }
         if (n2Meta) n2Meta.textContent = `id ${data.id_lote.substring(10)}`;
+
+        // PGM paso 2
+        if (pgmElements.c1) pgmElements.c1.classList.add("active-pgm-c1");
+        if (pgmElements.n2) pgmElements.n2.classList.add("active-pgm-n2");
+        if (pgmN2Meta && learnedStats) pgmN2Meta.textContent = `ε=${learnedStats.epsilon}`;
         
-        const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
-        actualizarHudRendimiento(searchTime);
+        // HUD dual
+        if (learnedStats) {
+            const rtreeMs = realRtreeTime || learnedStats.rtree_search_time_ms;
+            actualizarHudRendimientoLearned(learnedStats.learned_search_time_ms, rtreeMs);
+        } else {
+            const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
+            actualizarHudRendimiento(searchTime);
+        }
         
         if (diceBtn) diceBtn.disabled = false;
     }, 3300);
 }
+
+// ── CONTROL DE CACHÉ FRÍO ──
+async function coldCacheFlushVisor() {
+    const cb = document.getElementById("cold-cache-checkbox");
+    if (!cb || !cb.checked) return;
+    try {
+        await fetch("/api/cache/flush", { method: "POST" });
+    } catch (e) {
+        console.warn("Error al limpiar caché:", e);
+    }
+}
+
+// ── BÚSQUEDA UNIFICADA EN EL VISOR (R-TREE + PGM SIMULTÁNEO) ──
+async function buscarLoteUnificadoVisor(lat, lon) {
+    await coldCacheFlushVisor();
+    if (lat === undefined || lon === undefined) {
+        if (ultimoLoteCentro) {
+            lat = ultimoLoteCentro.lat;
+            lon = ultimoLoteCentro.lon;
+        } else {
+            const center = map.getCenter();
+            lat = center.lat;
+            lon = center.lng;
+        }
+    }
+
+    const hudContainer = document.getElementById("r-tree-performance-hud");
+    if (hudContainer) hudContainer.classList.add("hud-flash");
+
+    try {
+        const [rtreeResult, learnedResult] = await Promise.allSettled([
+            fetch(`/api/search/rtree?lat=${lat}&lon=${lon}`),
+            fetch(`/api/search/learned?lat=${lat}&lon=${lon}`)
+        ]);
+
+        let lote = null;
+        let rtreeStats = null;
+        let learnedStats = null;
+
+        if (rtreeResult.status === 'fulfilled' && rtreeResult.value.ok) {
+            const data = await rtreeResult.value.json();
+            lote = data.lote;
+            rtreeStats = data.stats;
+        }
+        if (learnedResult.status === 'fulfilled' && learnedResult.value.ok) {
+            const data = await learnedResult.value.json();
+            lote = data.lote;
+            learnedStats = data.stats;
+        }
+
+        if (!lote) {
+            Swal.fire({
+                title: '> sin_coincidencias',
+                text: 'No se encontró ningún lote en esta coordenada.',
+                icon: 'warning',
+                background: '#0b0f19',
+                color: '#f1f5f9',
+                confirmButtonText: 'aceptar',
+                buttonsStyling: false,
+                customClass: {
+                    popup: 'swal2-retro-popup',
+                    title: 'swal2-retro-title',
+                    htmlContainer: 'swal2-retro-html',
+                    confirmButton: 'swal2-retro-btn'
+                }
+            });
+            return;
+        }
+
+        ultimoLoteCentro = lote.center;
+
+        const realRtreeTime = rtreeStats ? rtreeStats.rtree_search_time_ms : null;
+        mostrarLoteEnVisor(lote);
+        abrirLoteModal(lote.id_lote, learnedStats, realRtreeTime);
+
+        // Actualizar HUD con ambos tiempos
+        const learnedTime = learnedStats ? learnedStats.learned_search_time_ms : null;
+        if (realRtreeTime !== null && learnedTime !== null) {
+            actualizarHudRendimientoLearned(learnedTime, realRtreeTime);
+        } else if (realRtreeTime !== null) {
+            actualizarHudRendimiento(realRtreeTime);
+        }
+    } catch (err) {
+        console.error("Error en búsqueda unificada visor:", err);
+    }
+}
+
+window.buscarLoteUnificadoVisor = buscarLoteUnificadoVisor;

@@ -38,11 +38,14 @@ def ejecutar_sincronizacion_background(bbox: tuple, accumulate: bool = False):
         sync_status["message"] = "Procesando, transformando e inyectando polígonos en PostGIS..."
         load_to_db.procesar_e_inyectar_datos(accumulate=accumulate)
         
-        # Obtener recuento de la base de datos
+        # Obtener recuento de la base de datos e iniciar reentrenamiento del Learned Index
         from src.config.database import SessionLocal
+        from src.core.pgm.evaluator import evaluator
         db = SessionLocal()
         try:
             total = db.execute(text("SELECT COUNT(*) FROM tg_lote;")).scalar() or 0
+            evaluator.initialized = False
+            evaluator.initialize(db)
         finally:
             db.close()
             

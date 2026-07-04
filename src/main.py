@@ -52,6 +52,18 @@ def startup_event():
     print("Sincronizando el esquema de la base de datos de forma nativa...")
     Base.metadata.create_all(bind=engine)
     print("Esquema de base de datos verificado y listo.")
+    
+    # Entrenar el PGM-Index en el inicio si hay datos
+    try:
+        from src.config.database import SessionLocal
+        from src.core.pgm.evaluator import evaluator
+        db = SessionLocal()
+        try:
+            evaluator.initialize(db)
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Advertencia: No se pudo pre-entrenar el PGM-Index en startup ({e})")
 
 app.add_middleware(
     CORSMiddleware,

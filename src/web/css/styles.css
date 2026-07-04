@@ -841,6 +841,34 @@ h1 {
     transform: translateY(0);
 }
 
+.btn-search-compare:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 18px var(--hover-glow), inset 0 0 8px var(--hover-glow-inner) !important;
+    background: var(--hover-bg) !important;
+    color: #ffffff !important;
+}
+.btn-rtree-compare:hover {
+    --hover-glow: rgba(99, 102, 241, 0.4);
+    --hover-glow-inner: rgba(99, 102, 241, 0.2);
+    --hover-bg: rgba(99, 102, 241, 0.2);
+    border-color: #818cf8 !important;
+}
+.btn-pgm-compare:hover {
+    --hover-glow: rgba(16, 185, 129, 0.4);
+    --hover-glow-inner: rgba(16, 185, 129, 0.2);
+    --hover-bg: rgba(16, 185, 129, 0.2);
+    border-color: #34d399 !important;
+}
+.btn-search-compare:active {
+    transform: translateY(1px);
+}
+.btn-search-compare:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 /* Efecto Spin del dado */
 @keyframes diceSpin {
     from { transform: rotate(0deg); }
@@ -1594,6 +1622,18 @@ optgroup { background: #0d1117; color: #64748b; }
     z-index: 1000;
 }
 
+/* Panel flotante de botones de búsqueda comparativa en el visor */
+.visor-compare-bar {
+    position: fixed;
+    top: 4.8rem;
+    left: 55%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    z-index: 1000;
+}
+
 /* Panel informativo retro-minimalista */
 .map-info-panel-retro {
     background: rgba(9, 13, 22, 0.85);
@@ -1981,13 +2021,25 @@ optgroup { background: #0d1117; color: #64748b; }
     border: 1px solid rgba(129, 140, 248, 0.15);
     padding: 0.6rem 0.8rem;
     box-sizing: border-box;
-    display: none; /* Oculto por defecto para reducir saturación visual */
+    display: none;
 }
 .r-tree-traversal-widget.expanded {
     display: block;
     animation: rtreeSlideDown 0.3s ease-out;
 }
 
+.pgm-traversal-widget {
+    margin-top: 0.2rem;
+    background: rgba(11, 15, 25, 0.55);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    padding: 0.6rem 0.8rem;
+    box-sizing: border-box;
+    display: none;
+}
+.pgm-traversal-widget.expanded {
+    display: block;
+    animation: rtreeSlideDown 0.3s ease-out;
+}
 
 @keyframes rtreeSlideDown {
     from { opacity: 0; transform: translateY(-5px); }
@@ -2165,6 +2217,42 @@ optgroup { background: #0d1117; color: #64748b; }
 .traversal-node.active-n2 .node-index { color: #fca5a5; }
 .traversal-node.active-n2 .node-level { color: #fff; font-weight: 600; }
 .traversal-node.active-n2 .node-meta { color: #fca5a5; }
+
+/* Animaciones del flujo de búsqueda PGM-Index (Learned Index) */
+.traversal-node.active-pgm-n0 .pgm-bullet {
+    background: #10b981 !important;
+    border-color: #34d399 !important;
+    box-shadow: 0 0 10px #10b981, 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+.traversal-node.active-pgm-n0 .node-index { color: #a7f3d0 !important; }
+.traversal-node.active-pgm-n0 .node-level { color: #fff !important; }
+.traversal-node.active-pgm-n0 .node-meta { color: #a7f3d0 !important; }
+
+.traversal-connector.active-pgm-c0 {
+    background: linear-gradient(90deg, #10b981, #06b6d4) !important;
+}
+
+.traversal-node.active-pgm-n1 .pgm-bullet {
+    background: #06b6d4 !important;
+    border-color: #67e8f9 !important;
+    box-shadow: 0 0 10px #06b6d4, 0 0 0 3px rgba(6, 182, 212, 0.2);
+}
+.traversal-node.active-pgm-n1 .node-index { color: #a5f3fc !important; }
+.traversal-node.active-pgm-n1 .node-level { color: #fff !important; }
+.traversal-node.active-pgm-n1 .node-meta { color: #a5f3fc !important; }
+
+.traversal-connector.active-pgm-c1 {
+    background: linear-gradient(90deg, #06b6d4, #f59e0b) !important;
+}
+
+.traversal-node.active-pgm-n2 .pgm-bullet {
+    background: #f59e0b !important;
+    border-color: #fcd34d !important;
+    box-shadow: 0 0 10px #f59e0b, 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+.traversal-node.active-pgm-n2 .node-index { color: #fde68a !important; }
+.traversal-node.active-pgm-n2 .node-level { color: #fff !important; font-weight: 600; }
+.traversal-node.active-pgm-n2 .node-meta { color: #fde68a !important; }
 
 /* HUD de Rendimiento del R-Tree en Barra de Herramientas */
 .performance-hud-minimal {
@@ -2721,6 +2809,38 @@ optgroup { background: #0d1117; color: #64748b; }
 }
 .metric-v.success-val {
     color: #10b981;
+}
+
+/* Contenedor dual debug (R-Tree + PGM en paralelo) */
+.debug-steps-container.dual-debug {
+    flex-direction: column !important;
+    gap: 0.6rem !important;
+}
+.dual-debug-row {
+    display: flex;
+    gap: 0.8rem;
+    width: 100%;
+    justify-content: center;
+}
+.dual-debug-col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+}
+.dual-debug-col .debug-step-card {
+    flex: 1;
+    max-width: 190px;
+    height: 220px;
+}
+.dual-debug-col.pgm-col .debug-step-card {
+    border-color: rgba(16, 185, 129, 0.25);
+    background: rgba(11, 20, 18, 0.7);
+}
+.debug-step-card.pgm-debug-card {
+    border-color: rgba(16, 185, 129, 0.25);
+    background: rgba(11, 20, 18, 0.7);
 }
 
 .btn-copy-minimal {

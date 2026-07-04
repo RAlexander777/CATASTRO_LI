@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="css/styles.css?v=2.21" />
+    <link rel="stylesheet" href="css/styles.css?v=2.22" />
 </head>
 <body class="map-body">
 
@@ -139,10 +139,15 @@
         </button>
         
         <!-- Modo de Depuración Visual (Ejecución Interna) -->
-        <label class="cyber-toggle" style="user-select: none; margin-left: 0.4rem;" title="Activar Simulación de Búsqueda R-Tree en Mapa">
+        <label class="cyber-toggle" style="user-select: none; margin-left: 0.4rem;" title="Activar Simulación de Búsqueda Interna">
             <input type="checkbox" id="debug-mode-checkbox">
             <span class="cyber-toggle-slider"></span>
             <span class="cyber-toggle-label" style="font-size: 0.72rem;">debug</span>
+        </label>
+        <label class="cyber-toggle" style="user-select: none; margin-left: 0.2rem;" title="Limpiar caché PostgreSQL antes de cada búsqueda">
+            <input type="checkbox" id="cold-cache-checkbox">
+            <span class="cyber-toggle-slider" style="background: rgba(245, 158, 11, 0.15);"></span>
+            <span class="cyber-toggle-label" style="font-size: 0.72rem; color: #f59e0b;">frío</span>
         </label>
         
         <!-- HUD de Rendimiento del R-Tree en ms -->
@@ -150,6 +155,79 @@
             <span class="hud-label">r_tree:</span>
             <span id="hud-time-val" class="hud-val">—</span>
             <span class="hud-unit">ms</span>
+        </div>
+    </div>
+
+    <!-- Trazas de Búsqueda Simultánea (R-Tree + PGM) para el Visor -->
+    <div class="visor-traces-container" style="position: absolute; top: 75px; left: 50%; transform: translateX(-50%); z-index: 999; display: flex; flex-direction: column; align-items: center; gap: 0.4rem; pointer-events: none;">
+        <button type="button" id="btn-toggle-traces-visor" class="btn-toggle-link" style="pointer-events: auto; background: rgba(11,15,25,0.8); backdrop-filter: blur(8px); border: 1px solid rgba(129,140,248,0.2); padding: 0.35rem 1rem; font-size: 0.7rem;">> mostrar_trazas_busqueda</button>
+        
+        <div class="dual-traversal-container" id="visor-dual-traces" style="display: flex; gap: 0.8rem; width: auto; justify-content: center; flex-wrap: wrap; pointer-events: auto;">
+            
+            <div class="r-tree-traversal-widget expanded" style="flex: 1; min-width: 220px; max-width: 320px; background: rgba(9, 13, 22, 0.85); backdrop-filter: blur(8px); border: 1.5px solid rgba(129, 140, 248, 0.3); padding: 0.6rem; box-shadow: 0 4px 20px rgba(0,0,0,0.6); border-radius: 0px; display: none;">
+                <div class="traversal-title" style="color: #818cf8; font-weight: bold; margin-bottom: 0.4rem; font-size: 0.65rem; text-transform: lowercase;">>> r_tree_gist_trace:</div>
+                <div class="traversal-nodes" style="display: flex; align-items: center; justify-content: space-between;">
+                    <div class="traversal-node" id="r-tree-n0">
+                        <span class="node-bullet n0-bullet"></span>
+                        <div class="node-text">
+                            <span class="node-index">N0</span>
+                            <span class="node-level">Raíz</span>
+                            <span class="node-meta" id="n0-meta">macro_bbox</span>
+                        </div>
+                    </div>
+                    <div class="traversal-connector" id="r-tree-c0"></div>
+                    <div class="traversal-node" id="r-tree-n1">
+                        <span class="node-bullet n1-bullet"></span>
+                        <div class="node-text">
+                            <span class="node-index">N1</span>
+                            <span class="node-level">Manzana</span>
+                            <span class="node-meta" id="n1-meta">sector_cluster</span>
+                        </div>
+                    </div>
+                    <div class="traversal-connector" id="r-tree-c1"></div>
+                    <div class="traversal-node" id="r-tree-n2">
+                        <span class="node-bullet n2-bullet"></span>
+                        <div class="node-text">
+                            <span class="node-index">N2</span>
+                            <span class="node-level">Predio</span>
+                            <span class="node-meta" id="n2-meta">lote_id</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pgm-traversal-widget expanded" style="flex: 1; min-width: 220px; max-width: 320px; background: rgba(9, 13, 22, 0.85); backdrop-filter: blur(8px); border: 1.5px solid rgba(16, 185, 129, 0.3); padding: 0.6rem; box-shadow: 0 4px 20px rgba(0,0,0,0.6); border-radius: 0px; display: none;">
+                <div class="traversal-title" style="color: #34d399; font-weight: bold; margin-bottom: 0.4rem; font-size: 0.65rem; text-transform: lowercase;">>> pgm_learned_index_trace:</div>
+                <div class="traversal-nodes" style="display: flex; align-items: center; justify-content: space-between;">
+                    <div class="traversal-node" id="pgm-n0">
+                        <span class="node-bullet pgm-bullet" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); width: 8px; height: 8px; display: inline-block; transition: all 0.25s ease;"></span>
+                        <div class="node-text">
+                            <span class="node-index" style="color: #34d399;">HK</span>
+                            <span class="node-level">Clave 1D</span>
+                            <span class="node-meta" id="pgm-n0-meta" style="color: var(--text-muted);">hilbert_val</span>
+                        </div>
+                    </div>
+                    <div class="traversal-connector" id="pgm-c0" style="background: rgba(16, 185, 129, 0.15); height: 2px; flex-grow: 1; margin: 0 0.4rem; transition: all 0.25s ease;"></div>
+                    <div class="traversal-node" id="pgm-n1">
+                        <span class="node-bullet pgm-bullet" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); width: 8px; height: 8px; display: inline-block; transition: all 0.25s ease;"></span>
+                        <div class="node-text">
+                            <span class="node-index" style="color: #34d399;">PGM</span>
+                            <span class="node-level">Predicción</span>
+                            <span class="node-meta" id="pgm-n1-meta" style="color: var(--text-muted);">modelo_lineal</span>
+                        </div>
+                    </div>
+                    <div class="traversal-connector" id="pgm-c1" style="background: rgba(16, 185, 129, 0.15); height: 2px; flex-grow: 1; margin: 0 0.4rem; transition: all 0.25s ease;"></div>
+                    <div class="traversal-node" id="pgm-n2">
+                        <span class="node-bullet pgm-bullet" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); width: 8px; height: 8px; display: inline-block; transition: all 0.25s ease;"></span>
+                        <div class="node-text">
+                            <span class="node-index" style="color: #34d399;">BS</span>
+                            <span class="node-level">Local (ε)</span>
+                            <span class="node-meta" id="pgm-n2-meta" style="color: var(--text-muted);">rango_ε</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -193,12 +271,23 @@
                     <div class="modal-item"><strong>Perímetro (m)</strong><span id="modal-pres-peri">—</span></div>
                     <div class="modal-item modal-item--wide"><strong>Centroide WGS84</strong><span id="modal-pres-coords">—</span></div>
                 </div>
+                
+                <!-- Learned Index Stats Section -->
+                <div id="modal-learned-stats-container" style="display: none; border-top: 1px dashed rgba(129, 140, 248, 0.2); margin-top: 0.8rem; padding-top: 0.8rem; text-align: left;">
+                    <h4 style="margin: 0 0 0.4rem 0; font-size: 0.72rem; color: #10b981; text-transform: lowercase;">// learned_index_trace:</h4>
+                    <div class="modal-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="modal-item"><strong>Clave Hilbert 1D</strong><span id="modal-learned-key" style="font-family: monospace; color: #a5b4fc;">—</span></div>
+                        <div class="modal-item"><strong>Segmentos PGM</strong><span id="modal-learned-segments" style="color: #a5b4fc;">—</span></div>
+                        <div class="modal-item"><strong>Búsqueda Rango (ε)</strong><span id="modal-learned-range" style="color: #a5b4fc;">—</span></div>
+                        <div class="modal-item"><strong>Pasos Búsqueda</strong><span id="modal-learned-steps" style="color: #a5b4fc;">—</span></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="js/map.js?v=2.11"></script>
+    <script src="js/map.js?v=2.33"></script>
 </body>
 </html>

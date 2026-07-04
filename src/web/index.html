@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.21">
+    <link rel="stylesheet" href="css/styles.css?v=2.22">
 </head>
 
 <body>
@@ -109,50 +109,93 @@
             <!-- Contenedor de cards del modo debug (ocupa todo el ancho del hero) -->
             <div id="debug-steps-container" class="debug-steps-container"></div>
 
-            <div class="r-tree-toggle-row">
-                <button type="button" id="btn-toggle-r-tree" class="btn-toggle-link">> mostrar_traza_r_tree</button>
+            <div class="r-tree-toggle-row" style="display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap;">
+                <button type="button" id="btn-toggle-traces" class="btn-toggle-link">> mostrar_trazas_busqueda</button>
             </div>
 
-            <!-- Representación de la Traza de Búsqueda R-Tree (Nodos/Niveles) -->
-            <div class="r-tree-traversal-widget">
-                <div class="traversal-title">> r_tree_traversal_trace:</div>
-                <div class="traversal-nodes">
-                    <div class="traversal-node" id="r-tree-n0">
-                        <span class="node-bullet n0-bullet"></span>
-                        <div class="node-text">
-                            <span class="node-index">N0</span>
-                            <span class="node-level">Raíz</span>
-                            <span class="node-meta" id="n0-meta">macro_bbox</span>
+            <!-- Representación de la Traza de Búsqueda Simultánea (R-Tree vs PGM-Index) -->
+            <div class="dual-traversal-container" style="display: flex; gap: 1rem; width: 100%; justify-content: space-between; flex-wrap: wrap; margin-top: 0.5rem; text-align: left;">
+                
+                <!-- Columna Izquierda: R-Tree GiST -->
+                <div class="r-tree-traversal-widget" style="flex: 1; min-width: 240px; background: rgba(9, 13, 22, 0.4); border: 1.5px solid rgba(129, 140, 248, 0.3); padding: 0.8rem; box-shadow: 0 0 10px rgba(129, 140, 248, 0.05); border-radius: 0px;">
+                    <div class="traversal-title" style="color: #818cf8; font-weight: bold; margin-bottom: 0.6rem; font-size: 0.72rem; text-transform: lowercase;">>> r_tree_gist_trace:</div>
+                    <div class="traversal-nodes" style="display: flex; align-items: center; justify-content: space-between;">
+                        <div class="traversal-node" id="r-tree-n0">
+                            <span class="node-bullet n0-bullet"></span>
+                            <div class="node-text">
+                                <span class="node-index">N0</span>
+                                <span class="node-level">Raíz</span>
+                                <span class="node-meta" id="n0-meta">macro_bbox</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="traversal-connector" id="r-tree-c0"></div>
-                    <div class="traversal-node" id="r-tree-n1">
-                        <span class="node-bullet n1-bullet"></span>
-                        <div class="node-text">
-                            <span class="node-index">N1</span>
-                            <span class="node-level">Manzana</span>
-                            <span class="node-meta" id="n1-meta">sector_cluster</span>
+                        <div class="traversal-connector" id="r-tree-c0"></div>
+                        <div class="traversal-node" id="r-tree-n1">
+                            <span class="node-bullet n1-bullet"></span>
+                            <div class="node-text">
+                                <span class="node-index">N1</span>
+                                <span class="node-level">Manzana</span>
+                                <span class="node-meta" id="n1-meta">sector_cluster</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="traversal-connector" id="r-tree-c1"></div>
-                    <div class="traversal-node" id="r-tree-n2">
-                        <span class="node-bullet n2-bullet"></span>
-                        <div class="node-text">
-                            <span class="node-index">N2</span>
-                            <span class="node-level">Predio</span>
-                            <span class="node-meta" id="n2-meta">lote_id</span>
+                        <div class="traversal-connector" id="r-tree-c1"></div>
+                        <div class="traversal-node" id="r-tree-n2">
+                            <span class="node-bullet n2-bullet"></span>
+                            <div class="node-text">
+                                <span class="node-index">N2</span>
+                                <span class="node-level">Predio</span>
+                                <span class="node-meta" id="n2-meta">lote_id</span>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Columna Derecha: PGM-Index Learned -->
+                <div class="pgm-traversal-widget" style="flex: 1; min-width: 240px; background: rgba(9, 13, 22, 0.4); border: 1.5px solid rgba(16, 185, 129, 0.3); padding: 0.8rem; box-shadow: 0 0 10px rgba(16, 185, 129, 0.05); border-radius: 0px;">
+                    <div class="traversal-title" style="color: #34d399; font-weight: bold; margin-bottom: 0.6rem; font-size: 0.72rem; text-transform: lowercase;">>> pgm_learned_index_trace:</div>
+                    <div class="traversal-nodes" style="display: flex; align-items: center; justify-content: space-between;">
+                        <div class="traversal-node" id="pgm-n0">
+                            <span class="node-bullet pgm-bullet" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); width: 8px; height: 8px; display: inline-block; transition: all 0.25s ease;"></span>
+                            <div class="node-text">
+                                <span class="node-index" style="color: #34d399;">HK</span>
+                                <span class="node-level">Clave 1D</span>
+                                <span class="node-meta" id="pgm-n0-meta" style="color: var(--text-muted);">hilbert_val</span>
+                            </div>
+                        </div>
+                        <div class="traversal-connector" id="pgm-c0" style="background: rgba(16, 185, 129, 0.15); height: 2px; flex-grow: 1; margin: 0 0.4rem; transition: all 0.25s ease;"></div>
+                        <div class="traversal-node" id="pgm-n1">
+                            <span class="node-bullet pgm-bullet" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); width: 8px; height: 8px; display: inline-block; transition: all 0.25s ease;"></span>
+                            <div class="node-text">
+                                <span class="node-index" style="color: #34d399;">PGM</span>
+                                <span class="node-level">Predicción</span>
+                                <span class="node-meta" id="pgm-n1-meta" style="color: var(--text-muted);">modelo_lineal</span>
+                            </div>
+                        </div>
+                        <div class="traversal-connector" id="pgm-c1" style="background: rgba(16, 185, 129, 0.15); height: 2px; flex-grow: 1; margin: 0 0.4rem; transition: all 0.25s ease;"></div>
+                        <div class="traversal-node" id="pgm-n2">
+                            <span class="node-bullet pgm-bullet" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); width: 8px; height: 8px; display: inline-block; transition: all 0.25s ease;"></span>
+                            <div class="node-text">
+                                <span class="node-index" style="color: #34d399;">BS</span>
+                                <span class="node-level">Local (ε)</span>
+                                <span class="node-meta" id="pgm-n2-meta" style="color: var(--text-muted);">rango_ε</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
     </div>
 
-    <!-- Modo de Depuración Visual (Ejecución Interna) -->
-    <div class="debug-mode-row" style="margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: center; width: 100%;">
+    <!-- Modo de Depuración Visual y Control de Caché -->
+    <div class="debug-mode-row" style="margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: center; width: 100%; gap: 1.2rem;">
         <label class="cyber-toggle" style="user-select: none;">
             <input type="checkbox" id="debug-mode-checkbox">
             <span class="cyber-toggle-slider"></span>
             <span class="cyber-toggle-label">ejecución_interna_debug</span>
+        </label>
+        <label class="cyber-toggle" style="user-select: none;">
+            <input type="checkbox" id="cold-cache-checkbox">
+            <span class="cyber-toggle-slider" style="background: rgba(245, 158, 11, 0.15);"></span>
+            <span class="cyber-toggle-label" style="color: #f59e0b;">caché_frío</span>
         </label>
     </div>
 
@@ -318,19 +361,19 @@
 
             <div class="memory-widgets-grid">
                 <div class="mem-widget">
-                    <span class="mem-widget-val">74.5 MB</span>
+                    <span id="stat-postgis-ram" class="mem-widget-val">—</span>
                     <span class="mem-widget-lbl">RAM PostGIS</span>
                 </div>
                 <div class="mem-widget">
-                    <span class="mem-widget-val">9.2 MB</span>
+                    <span id="stat-pgm-ram" class="mem-widget-val">—</span>
                     <span class="mem-widget-lbl">RAM PGM Index</span>
                 </div>
                 <div class="mem-widget">
-                    <span class="mem-widget-val">132.8 MB</span>
+                    <span id="stat-db-disk" class="mem-widget-val">—</span>
                     <span class="mem-widget-lbl">Disco (tg_lote)</span>
                 </div>
                 <div class="mem-widget">
-                    <span class="mem-widget-val">1.42s</span>
+                    <span id="stat-pgm-training" class="mem-widget-val">—</span>
                     <span class="mem-widget-lbl">Entreno PGM</span>
                 </div>
             </div>
@@ -350,16 +393,16 @@
                 <div class="metric-box">
                     <span class="metric-label">R-Tree / GiST Tradicional</span>
                     <div class="metric-visual-bar">
-                        <div class="bar-fill postgres-bar" style="width: 85%;"></div>
+                        <div class="bar-fill postgres-bar" id="bar-postgres-fill" style="width: 100%;"></div>
                     </div>
-                    <span class="metric-value">Consumo: <strong>~14.2 MB</strong></span>
+                    <span class="metric-value">Consumo: <strong id="val-postgres-ram">—</strong></span>
                 </div>
                 <div class="metric-box">
                     <span class="metric-label">Learned Index (PGM)</span>
                     <div class="metric-visual-bar">
-                        <div class="bar-fill learned-bar" style="width: 12%;"></div>
+                        <div class="bar-fill learned-bar" id="bar-learned-fill" style="width: 0%;"></div>
                     </div>
-                    <span class="metric-value">Consumo: <strong>~1.8 MB (↓ 87%)</strong></span>
+                    <span class="metric-value">Consumo: <strong id="val-learned-ram">—</strong></span>
                 </div>
             </div>
         </div>
@@ -588,7 +631,7 @@
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Cargar app.js con buster de caché actualizado -->
-    <script src="js/app.js?v=2.20"></script>
+    <script src="js/app.js?v=2.38"></script>
 </body>
 
 </html>

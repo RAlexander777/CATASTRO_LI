@@ -347,7 +347,6 @@ function animarScanner(realDataCallback) {
     };
     
     const interval = setInterval(() => {
-        // Construir un polígono aleatorio de 4 a 5 vértices dentro del canvas 240x240
         const mockCoords = [];
         const ptsCount = 4 + Math.floor(Math.random() * 2);
         const padding = 40;
@@ -359,7 +358,7 @@ function animarScanner(realDataCallback) {
                 padding + Math.random() * spread
             ]);
         }
-        mockCoords.push(mockCoords[0]); // Cerrar el polígono
+        mockCoords.push(mockCoords[0]);
         
         const mockGeom = {
             type: "Polygon",
@@ -367,14 +366,13 @@ function animarScanner(realDataCallback) {
         };
         renderizarLoteSVG(mockGeom);
         
-        // Mutar textos en pantalla a velocidades de microsegundos (incluyendo nombres de ciudades en barrido)
         const cities = ["Lima", "Arequipa", "Cusco", "Puno", "Juliaca", "Trujillo", "Chiclayo", "Piura", "Huancayo", "Iquitos"];
-        elements.id.textContent = `21010101${Math.floor(Math.random() * 900000) + 100000}`;
-        elements.ciudad.textContent = cities[Math.floor(Math.random() * cities.length)];
-        elements.area.textContent = `${(Math.random() * 150 + 50).toFixed(2)} m²`;
-        elements.peri.textContent = `${(Math.random() * 60 + 20).toFixed(2)} m`;
-        elements.coords.textContent = `${(-15 - Math.random() * 2).toFixed(4)}, ${(-70 - Math.random() * 2).toFixed(4)}`;
-        elements.time.textContent = `${(Math.random() * 10 + 20).toFixed(3)} ms`;
+        if (elements.id) elements.id.textContent = `21010101${Math.floor(Math.random() * 900000) + 100000}`;
+        if (elements.ciudad) elements.ciudad.textContent = cities[Math.floor(Math.random() * cities.length)];
+        if (elements.area) elements.area.textContent = `${(Math.random() * 150 + 50).toFixed(2)} m²`;
+        if (elements.peri) elements.peri.textContent = `${(Math.random() * 60 + 20).toFixed(2)} m`;
+        if (elements.coords) elements.coords.textContent = `${(-15 - Math.random() * 2).toFixed(4)}, ${(-70 - Math.random() * 2).toFixed(4)}`;
+        if (elements.time) elements.time.textContent = `${(Math.random() * 10 + 20).toFixed(3)} ms`;
         
     }, 50);
     
@@ -384,11 +382,21 @@ function animarScanner(realDataCallback) {
     };
 }
 
+async function coldCacheFlush() {
+    const cb = document.getElementById("cold-cache-checkbox");
+    if (!cb || !cb.checked) return;
+    try {
+        await fetch("/api/cache/flush", { method: "POST" });
+    } catch (e) {
+        console.warn("Error al limpiar caché:", e);
+    }
+}
+
 async function cargarLoteAleatorio() {
     if (isRandomizing) return;
+    await coldCacheFlush();
     isRandomizing = true;
     
-    // Plegar metadatos mientras se busca/carga en modo normal (no en debug)
     const debugCheckbox = document.getElementById("debug-mode-checkbox");
     const isDebugActive = debugCheckbox && debugCheckbox.checked;
     if (!isDebugActive) {
@@ -407,9 +415,9 @@ async function cargarLoteAleatorio() {
     
     let fetchResolved = false;
     let realData = null;
+    let learnedStats = null;
     let errorOccurred = null;
     
-    // Iniciar fetch en paralelo
     const fetchPromise = fetch("/api/lotes/random")
         .then(async r => {
             if (!r.ok) throw new Error("Error en servidor");
@@ -421,24 +429,39 @@ async function cargarLoteAleatorio() {
             fetchResolved = true;
         });
         
-    // Lanzar escáner animado
-    const stopScanner = animarScanner(() => {
+    const stopScanner = animarScanner(async () => {
         if (errorOccurred) {
             console.error("Error al cargar lote aleatorio:", errorOccurred);
             const placeholder = document.getElementById("lote-preview-placeholder");
             if (placeholder) placeholder.textContent = "Error al cargar";
         } else if (realData) {
-            actualizarLotePresentador(realData);
+            let realRtreeTime = null;
+            if (realData.center) {
+                try {
+                    const [rtreeRes, learnedRes] = await Promise.allSettled([
+                        fetch(`/api/search/rtree?lat=${realData.center.lat}&lon=${realData.center.lon}`),
+                        fetch(`/api/search/learned?lat=${realData.center.lat}&lon=${realData.center.lon}`)
+                    ]);
+                    if (rtreeRes.status === 'fulfilled' && rtreeRes.value.ok) {
+                        const result = await rtreeRes.value.json();
+                        realRtreeTime = result.stats.rtree_search_time_ms;
+                    }
+                    if (learnedRes.status === 'fulfilled' && learnedRes.value.ok) {
+                        const result = await learnedRes.value.json();
+                        learnedStats = result.stats;
+                    }
+                } catch (e) {}
+            }
+            actualizarLotePresentador(realData, learnedStats, realRtreeTime);
         }
         const debugCheckbox = document.getElementById("debug-mode-checkbox");
-        const isDebugActive = debugCheckbox && debugCheckbox.checked;
-        if (!isDebugActive || errorOccurred) {
+        const isDbg = debugCheckbox && debugCheckbox.checked;
+        if (!isDbg || errorOccurred) {
             isRandomizing = false;
             if (diceBtn) diceBtn.disabled = false;
         }
     });
     
-    // Ejecutar scanner por al menos 700ms para impacto estético
     setTimeout(async () => {
         while (!fetchResolved) {
             await new Promise(r => setTimeout(r, 40));
@@ -449,6 +472,7 @@ async function cargarLoteAleatorio() {
 
 async function buscarLotePorId() {
     if (isRandomizing) return;
+    await coldCacheFlush();
     
     const idInput = document.getElementById("search-lote-input").value.trim();
     if (!idInput || idInput.length !== 14) {
@@ -472,7 +496,6 @@ async function buscarLotePorId() {
     
     isRandomizing = true;
     
-    // Plegar metadatos mientras se busca/carga en modo normal (no en debug)
     const debugCheckbox = document.getElementById("debug-mode-checkbox");
     const isDebugActive = debugCheckbox && debugCheckbox.checked;
     if (!isDebugActive) {
@@ -484,6 +507,7 @@ async function buscarLotePorId() {
     
     let fetchResolved = false;
     let realData = null;
+    let learnedStats = null;
     let errorOccurred = null;
     
     const fetchPromise = fetch(`/api/lotes/${idInput}`)
@@ -498,7 +522,7 @@ async function buscarLotePorId() {
             fetchResolved = true;
         });
         
-    const stopScanner = animarScanner(() => {
+    const stopScanner = animarScanner(async () => {
         if (errorOccurred) {
             const placeholder = document.getElementById("lote-preview-placeholder");
             if (placeholder) {
@@ -516,11 +540,28 @@ async function buscarLotePorId() {
             document.getElementById("pres-coords").textContent = "-";
             document.getElementById("pres-time").textContent = "-";
         } else if (realData) {
-            actualizarLotePresentador(realData);
+            let realRtreeTime = null;
+            if (realData.center) {
+                try {
+                    const [rtreeRes, learnedRes] = await Promise.allSettled([
+                        fetch(`/api/search/rtree?lat=${realData.center.lat}&lon=${realData.center.lon}`),
+                        fetch(`/api/search/learned?lat=${realData.center.lat}&lon=${realData.center.lon}`)
+                    ]);
+                    if (rtreeRes.status === 'fulfilled' && rtreeRes.value.ok) {
+                        const result = await rtreeRes.value.json();
+                        realRtreeTime = result.stats.rtree_search_time_ms;
+                    }
+                    if (learnedRes.status === 'fulfilled' && learnedRes.value.ok) {
+                        const result = await learnedRes.value.json();
+                        learnedStats = result.stats;
+                    }
+                } catch (e) {}
+            }
+            actualizarLotePresentador(realData, learnedStats, realRtreeTime);
         }
         const debugCheckbox = document.getElementById("debug-mode-checkbox");
-        const isDebugActive = debugCheckbox && debugCheckbox.checked;
-        if (!isDebugActive || errorOccurred) {
+        const isDbg = debugCheckbox && debugCheckbox.checked;
+        if (!isDbg || errorOccurred) {
             isRandomizing = false;
         }
     });
@@ -533,7 +574,7 @@ async function buscarLotePorId() {
     }, 700);
 }
 
-function actualizarLotePresentador(data) {
+function actualizarLotePresentador(data, learnedStats, rtreeSearchTimeMs) {
     if (!data) return;
     currentLoteData = data;
     
@@ -553,7 +594,7 @@ function actualizarLotePresentador(data) {
         if (debugContainer) {
             debugContainer.classList.add("active");
         }
-        ejecutarSimulacionPasoAPaso(data);
+        ejecutarSimulacionPasoAPaso(data, rtreeSearchTimeMs);
     } else {
         if (metadataPanel) {
             metadataPanel.classList.remove("collapsed");
@@ -564,11 +605,11 @@ function actualizarLotePresentador(data) {
             debugContainer.innerHTML = "";
         }
         if (previewContainer) previewContainer.style.display = "flex";
-        actualizarLotePresentadorNormal(data);
+        actualizarLotePresentadorNormal(data, learnedStats, rtreeSearchTimeMs);
     }
 }
 
-function actualizarLotePresentadorNormal(data) {
+function actualizarLotePresentadorNormal(data, learnedStats, rtreeSearchTimeMs) {
     const placeholder = document.getElementById("lote-preview-placeholder");
     if (placeholder) {
         placeholder.classList.remove("error-active");
@@ -584,18 +625,42 @@ function actualizarLotePresentadorNormal(data) {
     document.getElementById("pres-peri").textContent = data.peri_grafico ? Number(data.peri_grafico).toFixed(2) + " m" : "N/D";
     document.getElementById("pres-coords").textContent = data.center ? `${Number(data.center.lat).toFixed(5)}, ${Number(data.center.lon).toFixed(5)}` : "N/D";
     
-    // Simulación de computación viva en el índice R-Tree de la base de datos
-    const originalTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.120;
-    const simulatedTime = (originalTime + (Math.random() * 0.04 - 0.02)).toFixed(3);
     const timeEl = document.getElementById("pres-time");
-    if (timeEl) {
-        timeEl.textContent = `${simulatedTime} ms`;
-        timeEl.style.transition = "none";
-        timeEl.style.color = "#818cf8"; // Resaltar azul AutoCAD al calcular
-        setTimeout(() => {
-            timeEl.style.transition = "color 0.8s ease";
-            timeEl.style.color = ""; // Restaurar color inicial
-        }, 120);
+    const rtreeTimeTag = document.querySelector(".minimal-time-tag");
+    
+    if (learnedStats && learnedStats.learned_search_time_ms) {
+        const learnedMs = Number(learnedStats.learned_search_time_ms);
+        const rtreeMs = rtreeSearchTimeMs || (learnedStats.rtree_search_time_ms ? Number(learnedStats.rtree_search_time_ms) : null);
+        if (timeEl) {
+            timeEl.innerHTML = `<span style="color: #10b981;">${learnedMs.toFixed(3)} ms</span>`;
+            timeEl.style.color = "#10b981";
+        }
+        if (rtreeTimeTag) {
+            if (rtreeMs !== null) {
+                rtreeTimeTag.innerHTML = `[pgm_li: <span style="color: #10b981; font-weight:bold;">${learnedMs.toFixed(3)} ms</span> | R-TREE ACC: <span style="color: #a855f7;">${rtreeMs.toFixed(3)} ms</span>]`;
+            } else {
+                rtreeTimeTag.innerHTML = `[pgm_li: <span style="color: #10b981; font-weight:bold;">${learnedMs.toFixed(3)} ms</span>]`;
+            }
+        }
+    } else {
+        // Usar la métrica real del endpoint /api/search/rtree si está disponible (valor exacto, sin jitter)
+        const realTime = rtreeSearchTimeMs ? Number(rtreeSearchTimeMs) : (data.execution_time_ms ? Number(data.execution_time_ms) : 0.120);
+        if (timeEl) {
+            timeEl.textContent = `${realTime.toFixed(3)} ms`;
+            timeEl.style.transition = "none";
+            timeEl.style.color = "#818cf8";
+            setTimeout(() => {
+                timeEl.style.transition = "color 0.8s ease";
+                timeEl.style.color = "";
+            }, 120);
+        }
+        if (rtreeTimeTag) {
+            if (rtreeSearchTimeMs) {
+                rtreeTimeTag.innerHTML = `[R-TREE ACC: <span style="color: #a855f7; font-weight: bold;">${realTime.toFixed(3)} ms</span>]`;
+            } else {
+                rtreeTimeTag.innerHTML = `[r_tree: <span style="color: #818cf8; font-weight: bold;">${realTime.toFixed(3)} ms</span>]`;
+            }
+        }
     }
     
     // Actualizar metadata dinámica en el árbol traversal del R-Tree
@@ -611,8 +676,8 @@ function actualizarLotePresentadorNormal(data) {
     }
     if (n2Meta) n2Meta.textContent = `id ${data.id_lote.substring(10)}`;
 
-    // Reiniciar clases de animación
-    const elements = {
+    // Reiniciar clases de animación (R-Tree widget)
+    const rTreeElements = {
         n0: document.getElementById("r-tree-n0"),
         c0: document.getElementById("r-tree-c0"),
         n1: document.getElementById("r-tree-n1"),
@@ -620,16 +685,46 @@ function actualizarLotePresentadorNormal(data) {
         n2: document.getElementById("r-tree-n2")
     };
     
-    Object.values(elements).forEach(el => {
-        if (el) el.className = el.className.split(" ")[0]; // Mantener sólo clase base (traversal-node/traversal-connector)
+    Object.values(rTreeElements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0];
     });
 
     // Secuencia de animación de traza en niveles del R-Tree
-    setTimeout(() => { if (elements.n0) elements.n0.classList.add("active-n0"); }, 50);
-    setTimeout(() => { if (elements.c0) elements.c0.classList.add("active-c0"); }, 180);
-    setTimeout(() => { if (elements.n1) elements.n1.classList.add("active-n1"); }, 300);
-    setTimeout(() => { if (elements.c1) elements.c1.classList.add("active-c1"); }, 420);
-    setTimeout(() => { if (elements.n2) elements.n2.classList.add("active-n2"); }, 550);
+    setTimeout(() => { if (rTreeElements.n0) rTreeElements.n0.classList.add("active-n0"); }, 50);
+    setTimeout(() => { if (rTreeElements.c0) rTreeElements.c0.classList.add("active-c0"); }, 180);
+    setTimeout(() => { if (rTreeElements.n1) rTreeElements.n1.classList.add("active-n1"); }, 300);
+    setTimeout(() => { if (rTreeElements.c1) rTreeElements.c1.classList.add("active-c1"); }, 420);
+    setTimeout(() => { if (rTreeElements.n2) rTreeElements.n2.classList.add("active-n2"); }, 550);
+
+    // Reiniciar clases de animación (PGM widget)
+    const pgmElements = {
+        n0: document.getElementById("pgm-n0"),
+        c0: document.getElementById("pgm-c0"),
+        n1: document.getElementById("pgm-n1"),
+        c1: document.getElementById("pgm-c1"),
+        n2: document.getElementById("pgm-n2")
+    };
+
+    Object.values(pgmElements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0];
+    });
+
+    const pgmMetas = {
+        n0: document.getElementById("pgm-n0-meta"),
+        n1: document.getElementById("pgm-n1-meta"),
+        n2: document.getElementById("pgm-n2-meta")
+    };
+
+    if (pgmMetas.n0) pgmMetas.n0.textContent = "hilbert_val";
+    if (pgmMetas.n1) pgmMetas.n1.textContent = "modelo_lineal";
+    if (pgmMetas.n2) pgmMetas.n2.textContent = "rango_ε";
+
+    // Secuencia de animación PGM en paralelo
+    setTimeout(() => { if (pgmElements.n0) pgmElements.n0.classList.add("active-pgm-n0"); }, 50);
+    setTimeout(() => { if (pgmElements.c0) pgmElements.c0.classList.add("active-pgm-c0"); }, 180);
+    setTimeout(() => { if (pgmElements.n1) pgmElements.n1.classList.add("active-pgm-n1"); }, 300);
+    setTimeout(() => { if (pgmElements.c1) pgmElements.c1.classList.add("active-pgm-c1"); }, 420);
+    setTimeout(() => { if (pgmElements.n2) pgmElements.n2.classList.add("active-pgm-n2"); }, 550);
     
     const mapBtn = document.getElementById("btn-ver-mapa");
     if (mapBtn && data.center) {
@@ -827,7 +922,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         searchInput.addEventListener("keypress", (e) => {
             if (e.key === "Enter") {
-                buscarLotePorId();
+                const debugCheckbox = document.getElementById("debug-mode-checkbox");
+                const isDebugActive = debugCheckbox && debugCheckbox.checked;
+                if (isDebugActive) {
+                    const val = searchInput.value.trim();
+                    if (val.length === 14) {
+                        fetch(`/api/lotes/${val}`)
+                            .then(r => r.ok ? r.json() : null)
+                            .then(data => {
+                                if (data && data.center) {
+                                    buscarLoteUnificado(data.center.lat, data.center.lon);
+                                }
+                            });
+                    }
+                } else {
+                    buscarLotePorId();
+                }
             }
         });
         
@@ -838,16 +948,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // Toggle R-Tree Traversal Trace
-    const btnToggleRTree = document.getElementById("btn-toggle-r-tree");
-    const rTreeWidget = document.querySelector(".r-tree-traversal-widget");
+    // Toggle unificado de trazas (R-Tree + PGM)
+    const btnToggleTraces = document.getElementById("btn-toggle-traces");
+    const traceWidgets = document.querySelectorAll(".r-tree-traversal-widget, .pgm-traversal-widget");
     
-    if (btnToggleRTree && rTreeWidget) {
-        btnToggleRTree.addEventListener("click", () => {
-            const isExpanded = rTreeWidget.classList.toggle("expanded");
-            btnToggleRTree.textContent = isExpanded 
-                ? "> ocultar_traza_r_tree" 
-                : "> mostrar_traza_r_tree";
+    if (btnToggleTraces && traceWidgets.length) {
+        btnToggleTraces.addEventListener("click", () => {
+            let anyExpanded = false;
+            traceWidgets.forEach(w => {
+                const was = w.classList.toggle("expanded");
+                if (was) anyExpanded = true;
+            });
+            btnToggleTraces.textContent = anyExpanded
+                ? "> ocultar_trazas_busqueda"
+                : "> mostrar_trazas_busqueda";
         });
     }
 
@@ -908,6 +1022,37 @@ document.addEventListener("DOMContentLoaded", async () => {
             }, { threshold: 0.15 });
             
             observer.observe(dbCountEl);
+        }
+
+        // Actualizar widgets de memoria y rendimiento reales de forma dinámica
+        if (document.getElementById("stat-postgis-ram")) {
+            document.getElementById("stat-postgis-ram").textContent = data.postgis_ram || "—";
+        }
+        if (document.getElementById("stat-pgm-ram")) {
+            document.getElementById("stat-pgm-ram").textContent = data.pgm_ram || "—";
+        }
+        if (document.getElementById("stat-db-disk")) {
+            document.getElementById("stat-db-disk").textContent = data.db_disk || "—";
+        }
+        if (document.getElementById("stat-pgm-training")) {
+            document.getElementById("stat-pgm-training").textContent = data.training_time || "—";
+        }
+
+        // Actualizar gráficos comparativos reales de eficiencia en RAM
+        if (document.getElementById("val-postgres-ram") && data.postgis_ram) {
+            document.getElementById("val-postgres-ram").textContent = `Consumo: ${data.postgis_ram}`;
+        }
+        if (document.getElementById("val-learned-ram") && data.pgm_ram) {
+            const postgresBytes = parseFloat(data.postgis_ram.replace(/[^0-9.]/g, '')) || 1.0;
+            const learnedBytes = parseFloat(data.pgm_ram.replace(/[^0-9.]/g, '')) || 0.1;
+            const savings = Math.max(0, Math.round((1 - (learnedBytes / postgresBytes)) * 100));
+            document.getElementById("val-learned-ram").textContent = `Consumo: ${data.pgm_ram} (↓ ${savings}%)`;
+            
+            const barLearned = document.getElementById("bar-learned-fill");
+            if (barLearned) {
+                const ratio = Math.max(2, Math.min(100, Math.round((learnedBytes / postgresBytes) * 100)));
+                barLearned.style.width = `${ratio}%`;
+            }
         }
 
         // Cargar lote inicial
@@ -976,7 +1121,7 @@ window.switchDrawerTab = switchDrawerTab;
 
 // — SIMULADOR EN VIVO PASO A PASO (DEBUG MODE) —
 
-function crearMiniCardSVG(pasoIndex, data) {
+function crearMiniCardSVG(pasoIndex, data, rtreeSearchTimeMs) {
     let svgContent = "";
     let title = "";
     let titleColor = "";
@@ -990,7 +1135,11 @@ function crearMiniCardSVG(pasoIndex, data) {
     // Hash determinista del lote ID para sacar un número de lotes en la manzana
     const lotesEnManzana = data.id_lote ? (data.id_lote.charCodeAt(12) % 15) + 20 : 35;
     const side = Math.sqrt(data.area_grafica || 200) * 3.5;
-    const searchTime = data.execution_time_ms ? Number(data.execution_time_ms).toFixed(3) : "0.145";
+    // Usar la métrica real del endpoint /api/search/rtree (búsqueda espacial GiST) si está disponible,
+    // si no, caer al execution_time_ms del endpoint de lote
+    const searchTime = rtreeSearchTimeMs
+        ? Number(rtreeSearchTimeMs).toFixed(3)
+        : (data.execution_time_ms ? Number(data.execution_time_ms).toFixed(3) : "0.145");
 
     switch(pasoIndex) {
         case 0:
@@ -1095,60 +1244,215 @@ function crearMiniCardSVG(pasoIndex, data) {
     `;
 }
 
-function ejecutarSimulacionPasoAPaso(data) {
+function crearMiniCardSVGPGM(pasoIndex, data, stats) {
+    let svgContent = "";
+    let title = "";
+    let titleColor = "";
+    let desc = "";
+    let metricsHtml = "";
+
+    const searchTime = stats ? Number(stats.learned_search_time_ms).toFixed(3) : "0.025";
+
+    switch(pasoIndex) {
+        case 0:
+            title = "hk: hilbert 1d";
+            titleColor = "#34d399";
+            desc = "codificación coordenadas";
+            svgContent = `
+                <text x="12" y="30" fill="#34d399" font-size="9px" font-family="monospace" font-weight="bold">CURVA HILBERT</text>
+                <line x1="20" y1="50" x2="140" y2="50" stroke="#34d399" stroke-width="0.5" stroke-dasharray="2,2" opacity="0.3"/>
+                <text x="12" y="65" fill="rgba(52, 211, 153, 0.4)" font-size="7px" font-family="monospace">lat→lon→hilbert_key</text>
+                <circle cx="80" cy="45" r="3" fill="#34d399" opacity="0.6"/>
+            `;
+            metricsHtml = `
+                <div class="debug-step-metrics">
+                    <div class="metric-row"><span class="metric-k">CLAVE HK</span><span class="metric-v" style="color:#34d399">${stats && stats.hilbert_key ? stats.hilbert_key.toString().substring(0,12)+"..." : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">MÉTRICA</span><span class="metric-v">Hilbert 1D</span></div>
+                    <div class="metric-row"><span class="metric-k">ESTADO</span><span class="metric-v success-val">MAPPED</span></div>
+                </div>
+            `;
+            break;
+        case 1:
+            title = "pgm: predicción";
+            titleColor = "#06b6d4";
+            desc = "regresión segmentada";
+            svgContent = `
+                <text x="12" y="25" fill="#06b6d4" font-size="9px" font-family="monospace" font-weight="bold">MODELO PGM</text>
+                <line x1="15" y1="80" x2="145" y2="20" stroke="#06b6d4" stroke-width="1.2" opacity="0.6"/>
+                <circle cx="95" cy="45" r="4" fill="#06b6d4" opacity="0.8"/>
+                <text x="70" y="42" fill="#fff" font-size="6px" font-family="monospace">● pred</text>
+            `;
+            metricsHtml = `
+                <div class="debug-step-metrics">
+                    <div class="metric-row"><span class="metric-k">SEGMENTOS</span><span class="metric-v" style="color:#06b6d4">${stats ? stats.segments_count : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">ERROR ε</span><span class="metric-v">${stats ? stats.epsilon : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">ESTADO</span><span class="metric-v success-val">PREDICTED</span></div>
+                </div>
+            `;
+            break;
+        case 2:
+            title = "bs: búsqueda local";
+            titleColor = "#f59e0b";
+            desc = "registro verificado";
+            svgContent = `
+                <polygon points="30,15 50,55 10,55" stroke="#f59e0b" stroke-width="1.2" fill="rgba(245, 158, 11, 0.1)" transform="translate(60,20)"/>
+                <text x="80" y="85" fill="#f59e0b" font-size="7px" font-family="monospace">rango [ε]</text>
+            `;
+            metricsHtml = `
+                <div class="debug-step-metrics">
+                    <div class="metric-row"><span class="metric-k">RANGO BS</span><span class="metric-v" style="color:#f59e0b">${stats && stats.pgm_search_range ? `[${stats.pgm_search_range.join(',')}]` : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">PASOS</span><span class="metric-v">${stats ? stats.binary_steps : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">PGM ACC</span><span class="metric-v">${searchTime} ms</span></div>
+                    <div class="metric-row"><span class="metric-k">ESTADO</span><span class="metric-v success-val">FOUND</span></div>
+                </div>
+            `;
+            break;
+    }
+
+    return `
+        <div class="debug-step-card pgm-debug-card">
+            <span class="debug-step-title" style="color: ${titleColor};">${title}</span>
+            <svg width="160" height="110" style="background: rgba(5,7,12,0.65); border: 1px solid rgba(16,185,129,0.15);">
+                ${svgContent}
+            </svg>
+            <span class="debug-step-desc">${desc}</span>
+            ${metricsHtml}
+        </div>
+    `;
+}
+
+function ejecutarSimulacionPasoAPaso(data, rtreeSearchTimeMs) {
     const diceBtn = document.querySelector(".btn-dice");
     if (diceBtn) diceBtn.disabled = true;
     
-    document.getElementById("pres-id").textContent = "...";
-    document.getElementById("pres-ciudad").textContent = "...";
-    document.getElementById("pres-area").textContent = "...";
-    document.getElementById("pres-peri").textContent = "...";
-    document.getElementById("pres-coords").textContent = "...";
-    document.getElementById("pres-time").textContent = "...";
+    const setId = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setId("pres-id", "...");
+    setId("pres-ciudad", "...");
+    setId("pres-area", "...");
+    setId("pres-peri", "...");
+    setId("pres-coords", "...");
+    setId("pres-time", "...");
+
+    // Randomizer para métricas durante la simulación de debug (efecto "scanner" sobre pres-time y minimal-time-tag)
+    const presTimeEl = document.getElementById("pres-time");
+    const rtreeTimeTag = document.querySelector(".minimal-time-tag");
+    let randomizerTarget = rtreeSearchTimeMs ? Number(rtreeSearchTimeMs) : null;
+    let pgmTarget = null;
+    let randomizerInterval = setInterval(() => {
+        // Actualizar el target de PGM si learnedStats ya llegó
+        if (learnedStats && learnedStats.learned_search_time_ms) {
+            pgmTarget = Number(learnedStats.learned_search_time_ms);
+        }
+        // Generar valor aleatorio para pres-time que converja al R-Tree real
+        if (presTimeEl) {
+            if (randomizerTarget !== null) {
+                const jitter = (Math.random() - 0.5) * randomizerTarget * 0.4;
+                const value = Math.max(0.05, randomizerTarget + jitter);
+                presTimeEl.textContent = `${value.toFixed(3)} ms`;
+                presTimeEl.style.color = "#a855f7";
+            } else {
+                presTimeEl.textContent = `${(Math.random() * 3 + 0.5).toFixed(3)} ms`;
+                presTimeEl.style.color = "#a855f7";
+            }
+        }
+        // Generar valores aleatorios para minimal-time-tag (pgm_li + R-TREE ACC)
+        if (rtreeTimeTag) {
+            const rtreeVal = randomizerTarget !== null
+                ? Math.max(0.05, randomizerTarget + (Math.random() - 0.5) * randomizerTarget * 0.4)
+                : (Math.random() * 3 + 0.5);
+            const pgmVal = pgmTarget !== null
+                ? Math.max(0.005, pgmTarget + (Math.random() - 0.5) * pgmTarget * 0.4)
+                : (Math.random() * 0.05 + 0.005);
+            rtreeTimeTag.innerHTML = `[pgm_li: <span style="color: #10b981; font-weight:bold;">${pgmVal.toFixed(3)} ms</span> | R-TREE ACC: <span style="color: #a855f7;">${rtreeVal.toFixed(3)} ms</span>]`;
+        }
+    }, 60);
     
-    const elements = {
+    const rTreeElements = {
         n0: document.getElementById("r-tree-n0"),
         c0: document.getElementById("r-tree-c0"),
         n1: document.getElementById("r-tree-n1"),
         c1: document.getElementById("r-tree-c1"),
         n2: document.getElementById("r-tree-n2")
     };
-    Object.values(elements).forEach(el => {
+    Object.values(rTreeElements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0];
+    });
+
+    const pgmElements = {
+        n0: document.getElementById("pgm-n0"),
+        c0: document.getElementById("pgm-c0"),
+        n1: document.getElementById("pgm-n1"),
+        c1: document.getElementById("pgm-c1"),
+        n2: document.getElementById("pgm-n2")
+    };
+    Object.values(pgmElements).forEach(el => {
         if (el) el.className = el.className.split(" ")[0];
     });
 
     const debugContainer = document.getElementById("debug-steps-container");
     if (debugContainer) {
         debugContainer.innerHTML = "";
+        debugContainer.classList.add("dual-debug");
     }
 
-    // Paso 0: N0 Raíz (t = 0)
-    if (debugContainer) {
-        debugContainer.innerHTML += crearMiniCardSVG(0, data);
+    let learnedStats = null;
+
+    const lat = data.center ? data.center.lat : -15.8402;
+    const lon = data.center ? data.center.lon : -70.0219;
+    fetch(`/api/search/learned?lat=${lat}&lon=${lon}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(res => { if (res) learnedStats = res.stats; })
+        .catch(() => {});
+
+    // Helper para crear columnas duales
+    function dualRow(rtreeHtml, pgmHtml) {
+        return `<div class="dual-debug-row"><div class="dual-debug-col rtree-col">${rtreeHtml}</div><div class="dual-debug-col pgm-col">${pgmHtml}</div></div>`;
     }
-    if (elements.n0) elements.n0.classList.add("active-n0");
+
+    // Paso 0: N0 Raíz + HK (t = 0)
+    if (debugContainer) {
+        debugContainer.innerHTML += dualRow(crearMiniCardSVG(0, data, rtreeSearchTimeMs), crearMiniCardSVGPGM(0, data, null));
+    }
+    if (rTreeElements.n0) rTreeElements.n0.classList.add("active-n0");
+    if (pgmElements.n0) pgmElements.n0.classList.add("active-pgm-n0");
     const n0Meta = document.getElementById("n0-meta");
     if (n0Meta) n0Meta.textContent = "evaluando...";
+    const pgmN0Meta = document.getElementById("pgm-n0-meta");
+    if (pgmN0Meta) pgmN0Meta.textContent = "evaluando...";
     
-    // Paso 1: N1 Manzana (t = 1000ms)
+    // Paso 1: N1 Manzana + PGM Predicción (t = 1000ms)
     setTimeout(() => {
         if (debugContainer) {
-            debugContainer.innerHTML += crearMiniCardSVG(1, data);
+            debugContainer.innerHTML += dualRow(crearMiniCardSVG(1, data, rtreeSearchTimeMs), crearMiniCardSVGPGM(1, data, learnedStats));
         }
-        if (elements.c0) elements.c0.classList.add("active-c0");
-        if (elements.n1) elements.n1.classList.add("active-n1");
+        if (rTreeElements.c0) rTreeElements.c0.classList.add("active-c0");
+        if (rTreeElements.n1) rTreeElements.n1.classList.add("active-n1");
         if (n0Meta) n0Meta.textContent = data.ciudad ? data.ciudad.split("(")[0].trim() : "Puno";
         const n1Meta = document.getElementById("n1-meta");
         if (n1Meta) n1Meta.textContent = "evaluando...";
+
+        if (pgmElements.c0) pgmElements.c0.classList.add("active-pgm-c0");
+        if (pgmElements.n1) pgmElements.n1.classList.add("active-pgm-n1");
+        const pgmN1Meta = document.getElementById("pgm-n1-meta");
+        if (pgmN1Meta) pgmN1Meta.textContent = "evaluando...";
     }, 1000);
     
-    // Paso 2: N2 Predio (t = 2000ms)
+    // Paso 2: N2 Predio + BS Búsqueda Local (t = 2000ms)
     setTimeout(() => {
-        if (debugContainer) {
-            debugContainer.innerHTML += crearMiniCardSVG(2, data);
+        // Detener randomizer y mostrar valor real sincronizado con la card N2
+        clearInterval(randomizerInterval);
+        if (presTimeEl && rtreeSearchTimeMs) {
+            presTimeEl.textContent = `${Number(rtreeSearchTimeMs).toFixed(3)} ms`;
+            presTimeEl.style.color = "#a855f7";
+        } else if (presTimeEl) {
+            presTimeEl.textContent = `${(data.execution_time_ms || 0.145).toFixed(3)} ms`;
+            presTimeEl.style.color = "#a855f7";
         }
-        if (elements.c1) elements.c1.classList.add("active-c1");
-        if (elements.n2) elements.n2.classList.add("active-n2");
+        if (debugContainer) {
+            debugContainer.innerHTML += dualRow(crearMiniCardSVG(2, data, rtreeSearchTimeMs), crearMiniCardSVGPGM(2, data, learnedStats));
+        }
+        if (rTreeElements.c1) rTreeElements.c1.classList.add("active-c1");
+        if (rTreeElements.n2) rTreeElements.n2.classList.add("active-n2");
         const n1Meta = document.getElementById("n1-meta");
         if (n1Meta) {
             const side = Math.sqrt(data.area_grafica || 200) * 3.5;
@@ -1156,17 +1460,295 @@ function ejecutarSimulacionPasoAPaso(data) {
         }
         const n2Meta = document.getElementById("n2-meta");
         if (n2Meta) n2Meta.textContent = "accediendo...";
+
+        if (pgmElements.c1) pgmElements.c1.classList.add("active-pgm-c1");
+        if (pgmElements.n2) pgmElements.n2.classList.add("active-pgm-n2");
+        const pgmN2Meta = document.getElementById("pgm-n2-meta");
+        if (pgmN2Meta) pgmN2Meta.textContent = "evaluando...";
     }, 2000);
     
     // Finalización (t = 3000ms)
     setTimeout(() => {
         const n2Meta = document.getElementById("n2-meta");
         if (n2Meta) n2Meta.textContent = `id ${data.id_lote.substring(10)}`;
+        const pgmN2Meta = document.getElementById("pgm-n2-meta");
+        if (pgmN2Meta && learnedStats) pgmN2Meta.textContent = `ε=${learnedStats.epsilon}`;
 
-        // Cargar datos en HUD del lote
-        actualizarLotePresentadorNormal(data);
+        // Restaurar todos los datos del lote y métricas sincronizadas con la card N2
+        actualizarLotePresentadorNormal(data, learnedStats, rtreeSearchTimeMs);
         
         isRandomizing = false;
         if (diceBtn) diceBtn.disabled = false;
     }, 3000);
 }
+
+// ── BÚSQUEDA UNIFICADA (R-TREE + PGM-INDEX SIMULTÁNEO) ──
+async function buscarLoteUnificado(lat, lon) {
+    if (isRandomizing) return;
+    await coldCacheFlush();
+
+    if (lat === undefined || lon === undefined) {
+        if (currentLoteData && currentLoteData.center) {
+            lat = currentLoteData.center.lat;
+            lon = currentLoteData.center.lon;
+        } else {
+            lat = -15.8402;
+            lon = -70.0219;
+        }
+    }
+
+    isRandomizing = true;
+
+    const metadataPanel = document.getElementById("metadata-details-panel");
+    if (metadataPanel) metadataPanel.classList.remove("collapsed");
+
+    const previewContainer = document.querySelector(".preview-container");
+    const debugContainer = document.getElementById("debug-steps-container");
+
+    if (previewContainer) previewContainer.style.display = "flex";
+    if (debugContainer) {
+        debugContainer.classList.remove("active");
+        debugContainer.innerHTML = "";
+    }
+
+    try {
+        const [rtreeResult, learnedResult] = await Promise.allSettled([
+            fetch(`/api/search/rtree?lat=${lat}&lon=${lon}`),
+            fetch(`/api/search/learned?lat=${lat}&lon=${lon}`)
+        ]);
+
+        let lote = null;
+        let rtreeStats = null;
+        let learnedStats = null;
+
+        if (rtreeResult.status === 'fulfilled' && rtreeResult.value.ok) {
+            const data = await rtreeResult.value.json();
+            lote = data.lote;
+            rtreeStats = data.stats;
+        }
+        if (learnedResult.status === 'fulfilled' && learnedResult.value.ok) {
+            const data = await learnedResult.value.json();
+            lote = data.lote;
+            learnedStats = data.stats;
+        }
+
+        if (!lote) {
+            Swal.fire({
+                title: '> sin_coincidencias',
+                text: 'No se encontró ningún lote en esta coordenada.',
+                icon: 'warning',
+                background: '#0b0f19',
+                color: '#f1f5f9',
+                confirmButtonText: 'aceptar',
+                buttonsStyling: false,
+                customClass: {
+                    popup: 'swal2-retro-popup',
+                    title: 'swal2-retro-title',
+                    htmlContainer: 'swal2-retro-html',
+                    confirmButton: 'swal2-retro-btn'
+                }
+            });
+            isRandomizing = false;
+            return;
+        }
+
+        await new Promise(r => setTimeout(r, 600));
+
+        const realRtreeTime = rtreeStats ? rtreeStats.rtree_search_time_ms : null;
+        actualizarLotePresentadorNormal(lote, learnedStats, realRtreeTime);
+        currentLoteData = lote;
+
+        animarWidgetsConcurrentes(lote, learnedStats);
+    } catch (err) {
+        console.error("Error en búsqueda unificada:", err);
+    } finally {
+        isRandomizing = false;
+    }
+}
+
+function animarWidgetsConcurrentes(lote, learnedStats) {
+    const rTreeElements = {
+        n0: document.getElementById("r-tree-n0"),
+        c0: document.getElementById("r-tree-c0"),
+        n1: document.getElementById("r-tree-n1"),
+        c1: document.getElementById("r-tree-c1"),
+        n2: document.getElementById("r-tree-n2")
+    };
+
+    const pgmElements = {
+        n0: document.getElementById("pgm-n0"),
+        c0: document.getElementById("pgm-c0"),
+        n1: document.getElementById("pgm-n1"),
+        c1: document.getElementById("pgm-c1"),
+        n2: document.getElementById("pgm-n2")
+    };
+
+    const rTreeMetas = {
+        n0: document.getElementById("n0-meta"),
+        n1: document.getElementById("n1-meta"),
+        n2: document.getElementById("n2-meta")
+    };
+
+    const pgmMetas = {
+        n0: document.getElementById("pgm-n0-meta"),
+        n1: document.getElementById("pgm-n1-meta"),
+        n2: document.getElementById("pgm-n2-meta")
+    };
+
+    Object.values(rTreeElements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0];
+    });
+    Object.values(pgmElements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0];
+    });
+
+    if (pgmMetas.n0 && learnedStats) {
+        pgmMetas.n0.textContent = learnedStats.hilbert_key ? learnedStats.hilbert_key.toString().substring(0, 10) + "..." : "hilbert_val";
+    }
+    if (pgmMetas.n1 && learnedStats) {
+        pgmMetas.n1.textContent = learnedStats.pgm_predicted_index !== undefined ? `idx: ${learnedStats.pgm_predicted_index}` : "modelo_lineal";
+    }
+    if (pgmMetas.n2 && learnedStats) {
+        pgmMetas.n2.textContent = learnedStats.pgm_search_range ? `[${learnedStats.pgm_search_range.join(',')}]` : "rango_ε";
+    }
+
+    setTimeout(() => { if (rTreeElements.n0) rTreeElements.n0.classList.add("active-n0"); }, 50);
+    setTimeout(() => {
+        if (rTreeElements.c0) rTreeElements.c0.classList.add("active-c0");
+        if (rTreeElements.n1) rTreeElements.n1.classList.add("active-n1");
+        if (rTreeMetas.n0) rTreeMetas.n0.textContent = lote.ciudad ? lote.ciudad.split("(")[0].trim() : "Puno";
+    }, 200);
+    setTimeout(() => {
+        if (rTreeElements.c1) rTreeElements.c1.classList.add("active-c1");
+        if (rTreeElements.n2) rTreeElements.n2.classList.add("active-n2");
+        if (rTreeMetas.n1) {
+            const side = Math.sqrt(lote.area_grafica || 200) * 3.5;
+            rTreeMetas.n1.textContent = `bbox ${side.toFixed(0)}x${side.toFixed(0)}m`;
+        }
+        if (rTreeMetas.n2) rTreeMetas.n2.textContent = `id ${lote.id_lote.substring(10)}`;
+    }, 400);
+
+    setTimeout(() => { if (pgmElements.n0) pgmElements.n0.classList.add("active-pgm-n0"); }, 50);
+    setTimeout(() => {
+        if (pgmElements.c0) pgmElements.c0.classList.add("active-pgm-c0");
+        if (pgmElements.n1) pgmElements.n1.classList.add("active-pgm-n1");
+    }, 200);
+    setTimeout(() => {
+        if (pgmElements.c1) pgmElements.c1.classList.add("active-pgm-c1");
+        if (pgmElements.n2) pgmElements.n2.classList.add("active-pgm-n2");
+        if (pgmMetas.n2 && learnedStats) pgmMetas.n2.textContent = `ε=${learnedStats.epsilon}`;
+    }, 400);
+}
+
+function restaurarEtiquetasRTree() {
+    const title = document.querySelector(".traversal-title");
+    if (title) title.textContent = ">> r_tree_traversal_trace:";
+    
+    const n0 = document.getElementById("r-tree-n0");
+    if (n0) {
+        n0.querySelector(".node-index").textContent = "N0";
+        n0.querySelector(".node-level").textContent = "Raíz";
+    }
+    const n1 = document.getElementById("r-tree-n1");
+    if (n1) {
+        n1.querySelector(".node-index").textContent = "N1";
+        n1.querySelector(".node-level").textContent = "Manzana";
+    }
+    const n2 = document.getElementById("r-tree-n2");
+    if (n2) {
+        n2.querySelector(".node-index").textContent = "N2";
+        n2.querySelector(".node-level").textContent = "Predio";
+    }
+}
+
+function cambiarEtiquetasPGM(stats) {
+    const title = document.querySelector(".traversal-title");
+    if (title) title.textContent = ">> learned_index_pgm_trace:";
+    
+    const n0 = document.getElementById("r-tree-n0");
+    if (n0) {
+        n0.querySelector(".node-index").textContent = "HK";
+        n0.querySelector(".node-level").textContent = "Clave 1D";
+        document.getElementById("n0-meta").textContent = stats.hilbert_key.toString().substring(0, 10) + "...";
+    }
+    const n1 = document.getElementById("r-tree-n1");
+    if (n1) {
+        n1.querySelector(".node-index").textContent = "PGM";
+        n1.querySelector(".node-level").textContent = "Predicción";
+        document.getElementById("n1-meta").textContent = `idx: ${stats.pgm_predicted_index}`;
+    }
+    const n2 = document.getElementById("r-tree-n2");
+    if (n2) {
+        n2.querySelector(".node-index").textContent = "BS";
+        n2.querySelector(".node-level").textContent = "Búsqueda Local";
+        document.getElementById("n2-meta").textContent = `rango [${stats.pgm_search_range.join(',')}]`;
+    }
+}
+
+function activarNodosRTreeSecuencial(lote) {
+    const elements = {
+        n0: document.getElementById("r-tree-n0"),
+        c0: document.getElementById("r-tree-c0"),
+        n1: document.getElementById("r-tree-n1"),
+        c1: document.getElementById("r-tree-c1"),
+        n2: document.getElementById("r-tree-n2")
+    };
+    
+    Object.values(elements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0];
+    });
+    
+    if (elements.n0) elements.n0.classList.add("active-n0");
+    
+    setTimeout(() => {
+        if (elements.c0) elements.c0.classList.add("active-c0");
+        if (elements.n1) elements.n1.classList.add("active-n1");
+        const side = Math.sqrt(lote.area_grafica || 200) * 3.5;
+        document.getElementById("n1-meta").textContent = `bbox ${side.toFixed(0)}x${side.toFixed(0)}m`;
+    }, 200);
+    
+    setTimeout(() => {
+        if (elements.c1) elements.c1.classList.add("active-c1");
+        if (elements.n2) elements.n2.classList.add("active-n2");
+        document.getElementById("n2-meta").textContent = `id ${lote.id_lote.substring(10)}`;
+    }, 400);
+}
+
+function activarNodosPGMSecuencial(stats) {
+    const elements = {
+        n0: document.getElementById("pgm-n0"),
+        c0: document.getElementById("pgm-c0"),
+        n1: document.getElementById("pgm-n1"),
+        c1: document.getElementById("pgm-c1"),
+        n2: document.getElementById("pgm-n2")
+    };
+
+    const metas = {
+        n0: document.getElementById("pgm-n0-meta"),
+        n1: document.getElementById("pgm-n1-meta"),
+        n2: document.getElementById("pgm-n2-meta")
+    };
+    
+    Object.values(elements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0];
+    });
+
+    if (metas.n0 && stats) metas.n0.textContent = stats.hilbert_key ? stats.hilbert_key.toString().substring(0, 10) + "..." : "hilbert_val";
+    if (metas.n1 && stats) metas.n1.textContent = stats.pgm_predicted_index !== undefined ? `idx: ${stats.pgm_predicted_index}` : "modelo_lineal";
+    if (metas.n2 && stats) metas.n2.textContent = stats.pgm_search_range ? `[${stats.pgm_search_range.join(',')}]` : "rango_ε";
+    
+    if (elements.n0) elements.n0.classList.add("active-pgm-n0");
+    
+    setTimeout(() => {
+        if (elements.c0) elements.c0.classList.add("active-pgm-c0");
+        if (elements.n1) elements.n1.classList.add("active-pgm-n1");
+    }, 200);
+    
+    setTimeout(() => {
+        if (elements.c1) elements.c1.classList.add("active-pgm-c1");
+        if (elements.n2) elements.n2.classList.add("active-pgm-n2");
+        if (metas.n2 && stats) metas.n2.textContent = `ε=${stats.epsilon}`;
+    }, 400);
+}
+
+window.buscarLoteUnificado = buscarLoteUnificado;
