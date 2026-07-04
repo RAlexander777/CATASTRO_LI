@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.11">
+    <link rel="stylesheet" href="css/styles.css?v=2.17">
 </head>
 
 <body>
@@ -65,52 +65,55 @@
         </header>
 
         <!-- SECCIÓN 1: Inspección de Datos Real-Time (Hero Card Centrada) -->
-        <section class="hero-lote-card">
-            <!-- Arriba: Visualización SVG -->
-            <div class="preview-container">
-                <div id="lote-glow-wrap" class="lote-glow-wrap">
-                    <svg id="lote-svg" width="240" height="240" viewBox="0 0 240 240" style="cursor: pointer;"
-                        title="Hacer clic para ver en mapa">
-                        <polygon id="lote-polygon" points="" />
-                    </svg>
-                    <!-- Glitch Overlay para Lote No Encontrado -->
-                    <div id="lote-glitch-overlay" class="lote-glitch-overlay">
-                        <div class="glitch-line"></div>
-                        <div class="glitch-line"></div>
-                        <div class="glitch-line"></div>
+        <section class="hero-lote-card" style="display: flex; flex-direction: column; align-items: center; gap: 0.8rem;">
+            
+            <div class="hero-flex-wrapper" style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 2rem; width: 100%; max-width: 800px; margin: 0 auto; overflow: visible;">
+                <!-- Left: Visualización SVG -->
+                <div class="preview-container" style="margin: 0; flex-shrink: 0;">
+                    <div id="lote-glow-wrap" class="lote-glow-wrap">
+                        <svg id="lote-svg" width="240" height="240" viewBox="0 0 240 240" style="cursor: pointer;"
+                            title="Hacer clic para plegar/desplegar metadatos">
+                            <polygon id="lote-polygon" points="" />
+                        </svg>
+                        <!-- Glitch Overlay para Lote No Encontrado -->
+                        <div id="lote-glitch-overlay" class="lote-glitch-overlay">
+                            <div class="glitch-line"></div>
+                            <div class="glitch-line"></div>
+                            <div class="glitch-line"></div>
+                        </div>
+                    </div>
+                    <div id="lote-preview-placeholder" class="placeholder-text">> cargando_vista...</div>
+                </div>
+
+                <!-- Right: Datos Minimalistas de Predio (Colapsable y Centrado) -->
+                <div class="preview-details metadata-panel-collapsible" id="metadata-details-panel" style="margin: 0; text-align: center; max-width: 320px; flex-shrink: 0;">
+                    <div class="minimal-predio-info"
+                        style="display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
+                        <span id="pres-id" class="minimal-id">—</span>
+                        <button type="button" id="btn-copy-id" class="btn-copy-minimal" title="Copiar Código Catastral"
+                            style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease; outline: none; margin-top: 0.2rem;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="pointer-events: none;">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="minimal-sub-info" style="margin-top: 0.4rem; font-size: 0.82rem; color: #fff; text-align: center;">
+                        <span id="pres-ciudad">—</span> &bull;
+                        <span id="pres-area">—</span> &bull;
+                        <span id="pres-peri">—</span>
+                    </div>
+                    <div class="minimal-meta-info" style="margin-top: 0.4rem; font-size: 0.72rem; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 0.2rem;">
+                        <span id="pres-coords">—</span>
+                        <span class="minimal-time-tag" style="margin-top: 0.4rem; align-self: center;">[r_tree: <span id="pres-time">—</span>]</span>
                     </div>
                 </div>
-                <div id="lote-preview-placeholder" class="placeholder-text">> cargando_vista...</div>
             </div>
 
             <!-- Contenedor de cards del modo debug (ocupa todo el ancho del hero) -->
             <div id="debug-steps-container" class="debug-steps-container"></div>
-
-            <!-- Centro: Datos Minimalistas de Predio (sin tablas ni cajas ruidosas) -->
-            <div class="preview-details">
-                <div class="minimal-predio-info"
-                    style="display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
-                    <span id="pres-id" class="minimal-id">—</span>
-                    <button type="button" id="btn-copy-id" class="btn-copy-minimal" title="Copiar Código Catastral"
-                        style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease; outline: none; margin-top: 0.2rem;">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            style="pointer-events: none;">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                    </button>
-                </div>
-                <div class="minimal-sub-info">
-                    <span id="pres-ciudad">—</span> &bull;
-                    <span id="pres-area">—</span> &bull;
-                    <span id="pres-peri">—</span>
-                </div>
-                <div class="minimal-meta-info">
-                    <span id="pres-coords">—</span>
-                    <span class="minimal-time-tag">[r_tree: <span id="pres-time">—</span>]</span>
-                </div>
-            </div>
 
             <div class="r-tree-toggle-row">
                 <button type="button" id="btn-toggle-r-tree" class="btn-toggle-link">> mostrar_traza_r_tree</button>
@@ -597,7 +600,7 @@
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Cargar app.js con buster de caché actualizado -->
-    <script src="js/app.js?v=2.10"></script>
+    <script src="js/app.js?v=2.16"></script>
 </body>
 
 </html>

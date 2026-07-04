@@ -6,6 +6,8 @@ const PRESETS = {
     la_paz: { min_lat: -16.508, min_lon: -68.140, max_lat: -16.495, max_lon: -68.125 }
 };
 
+let currentLoteData = null;
+
 function cargarPreset(nombre) {
     const preset = PRESETS[nombre];
     if (!preset) return;
@@ -386,6 +388,16 @@ async function cargarLoteAleatorio() {
     if (isRandomizing) return;
     isRandomizing = true;
     
+    // Plegar metadatos mientras se busca/carga en modo normal (no en debug)
+    const debugCheckbox = document.getElementById("debug-mode-checkbox");
+    const isDebugActive = debugCheckbox && debugCheckbox.checked;
+    if (!isDebugActive) {
+        const metadataPanel = document.getElementById("metadata-details-panel");
+        if (metadataPanel) {
+            metadataPanel.classList.add("collapsed");
+        }
+    }
+    
     const diceBtn = document.querySelector(".btn-dice");
     if (diceBtn) {
         diceBtn.disabled = true;
@@ -460,6 +472,16 @@ async function buscarLotePorId() {
     
     isRandomizing = true;
     
+    // Plegar metadatos mientras se busca/carga en modo normal (no en debug)
+    const debugCheckbox = document.getElementById("debug-mode-checkbox");
+    const isDebugActive = debugCheckbox && debugCheckbox.checked;
+    if (!isDebugActive) {
+        const metadataPanel = document.getElementById("metadata-details-panel");
+        if (metadataPanel) {
+            metadataPanel.classList.add("collapsed");
+        }
+    }
+    
     let fetchResolved = false;
     let realData = null;
     let errorOccurred = null;
@@ -512,19 +534,31 @@ async function buscarLotePorId() {
 }
 
 function actualizarLotePresentador(data) {
+    if (!data) return;
+    currentLoteData = data;
+    
     const debugCheckbox = document.getElementById("debug-mode-checkbox");
     const isDebugActive = debugCheckbox && debugCheckbox.checked;
     
     const previewContainer = document.querySelector(".preview-container");
     const debugContainer = document.getElementById("debug-steps-container");
+    const metadataPanel = document.getElementById("metadata-details-panel");
 
     if (isDebugActive) {
+        if (metadataPanel) {
+            metadataPanel.classList.remove("collapsed");
+        }
+        
         if (previewContainer) previewContainer.style.display = "none";
         if (debugContainer) {
             debugContainer.classList.add("active");
         }
         ejecutarSimulacionPasoAPaso(data);
     } else {
+        if (metadataPanel) {
+            metadataPanel.classList.remove("collapsed");
+        }
+        
         if (debugContainer) {
             debugContainer.classList.remove("active");
             debugContainer.innerHTML = "";
@@ -697,6 +731,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
     
+    // Toggle manual de metadatos (Plegar / Desplegar)
+    const btnToggleMetadata = document.getElementById("btn-toggle-metadata");
+    const metadataPanel = document.getElementById("metadata-details-panel");
+    if (btnToggleMetadata && metadataPanel) {
+        btnToggleMetadata.addEventListener("click", () => {
+            const isCollapsed = metadataPanel.classList.toggle("collapsed");
+            const polyline = document.getElementById("toggle-polyline");
+            if (polyline) {
+                polyline.setAttribute("points", isCollapsed ? "9 18 15 12 9 6" : "15 18 9 12 15 6");
+            }
+            btnToggleMetadata.title = isCollapsed ? "Desplegar Metadatos" : "Plegar Metadatos";
+        });
+    }
+
     // Botones para copiar comandos del Wiki Drawer
     document.querySelectorAll(".btn-copy-command").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -748,11 +796,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (svg) {
-        // Hacer que al hacer clic en el lote protagonista se redirija a su posición en el mapa
+        // Al hacer clic en el lote protagonista, plegar/desplegar metadatos
         svg.addEventListener("click", () => {
-            const mapBtn = document.getElementById("btn-ver-mapa");
-            if (mapBtn && mapBtn.getAttribute("href")) {
-                window.location.href = mapBtn.getAttribute("href");
+            const debugCheckbox = document.getElementById("debug-mode-checkbox");
+            const isDebugActive = debugCheckbox && debugCheckbox.checked;
+            if (isDebugActive) return;
+            
+            const metadataPanel = document.getElementById("metadata-details-panel");
+            if (metadataPanel) {
+                metadataPanel.classList.toggle("collapsed");
             }
         });
     }
