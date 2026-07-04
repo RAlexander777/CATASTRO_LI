@@ -3,42 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visor Cartográfico - Catastro LI</title>
+    <title>Visor Cartográfico — Catastro LI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/styles.css?v=2.0" />
 </head>
 <body class="map-body">
 
-    <header class="map-header">
-        <h2 class="map-title">Visor Cartográfico - Catastro LI</h2>
-        
-        <!-- Navegación rápida por ciudades -->
-        <div class="navigation-control" style="display: flex; align-items: center; gap: 0.6rem;">
-            <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500; font-family: var(--font-family);">Ir a Localidad:</span>
-            <select id="city-selector" style="background: rgba(17, 24, 39, 0.8); border: 1px solid rgba(59, 130, 246, 0.3); color: #fff; border-radius: 6px; padding: 0.4rem 1.2rem 0.4rem 0.8rem; font-family: var(--font-family); font-size: 0.9rem; cursor: pointer; outline: none; transition: all 0.2s ease;">
-                <option value="" disabled selected>Seleccione una ciudad...</option>
-                <option value="puno">Puno</option>
-                <option value="arequipa">Arequipa</option>
-                <option value="cusco">Cusco</option>
-                <option value="lima">Lima</option>
-                <option value="trujillo">Trujillo</option>
-                <option value="chiclayo">Chiclayo</option>
-                <option value="piura">Piura</option>
-                <option value="iquitos">Iquitos</option>
-                <option value="pucallpa">Pucallpa</option>
-                <option value="ayacucho">Ayacucho</option>
+    <!-- Loader de transición entre ciudades -->
+    <div id="map-loader" class="map-loader-overlay">
+        <div class="city-loader">
+            <div class="city-loader-ring"></div>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.5">
+                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+            </svg>
+        </div>
+        <div class="loader-text">> cargando_sector...</div>
+    </div>
+
+    <!-- Mapa principal -->
+    <div id="map"></div>
+
+    <!-- Panel de control flotante lateral -->
+    <aside id="visor-panel" class="visor-panel">
+
+        <!-- Cabecera del panel -->
+        <div class="panel-header">
+            <div class="panel-logo">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8">
+                    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                </svg>
+                <span>catastro_li</span>
+            </div>
+            <a href="/" class="panel-back" title="Volver al terminal">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </a>
+        </div>
+
+        <div class="panel-divider"></div>
+
+        <!-- Sección: Ciudad -->
+        <div class="panel-section">
+            <span class="section-label">// ciudad</span>
+            <select id="city-selector" class="panel-select">
+                <optgroup label="Perú">
+                    <option value="lima">Lima</option>
+                    <option value="arequipa">Arequipa</option>
+                    <option value="cusco">Cusco</option>
+                    <option value="puno">Puno</option>
+                    <option value="juliaca">Juliaca</option>
+                    <option value="huancayo">Huancayo</option>
+                    <option value="ayacucho">Ayacucho</option>
+                    <option value="ica">Ica</option>
+                    <option value="tacna">Tacna</option>
+                    <option value="trujillo">Trujillo</option>
+                    <option value="chimbote">Chimbote</option>
+                    <option value="chiclayo">Chiclayo</option>
+                    <option value="piura">Piura</option>
+                    <option value="tumbes">Tumbes</option>
+                    <option value="cajamarca">Cajamarca</option>
+                    <option value="tarapoto">Tarapoto</option>
+                    <option value="pucallpa">Pucallpa</option>
+                    <option value="iquitos">Iquitos</option>
+                </optgroup>
+                <optgroup label="Latinoamérica">
+                    <option value="bogota">Bogotá</option>
+                    <option value="santiago">Santiago</option>
+                    <option value="buenosaires">Buenos Aires</option>
+                    <option value="quito">Quito</option>
+                    <option value="lapaz">La Paz</option>
+                    <option value="montevideo">Montevideo</option>
+                    <option value="medellin">Medellín</option>
+                    <option value="guadalajara">Guadalajara</option>
+                    <option value="cdmx">Ciudad de México</option>
+                </optgroup>
             </select>
         </div>
 
-        <a href="/" class="back-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-            Volver al Panel
-        </a>
-    </header>
+        <!-- Sección: Mapa base -->
+        <div class="panel-section">
+            <span class="section-label">// mapa_base</span>
+            <div class="map-style-grid">
+                <button class="style-btn active" data-style="dark">Dark</button>
+                <button class="style-btn" data-style="satellite">Satélite</button>
+                <button class="style-btn" data-style="osm">OSM</button>
+                <button class="style-btn" data-style="light">Light</button>
+            </div>
+        </div>
 
-    <div id="map"></div>
+        <!-- Sección: Color de lotes -->
+        <div class="panel-section">
+            <span class="section-label">// color_lote</span>
+            <div class="color-controls">
+                <div class="color-picker-item">
+                    <input type="color" id="lote-color-picker" value="#818cf8" class="color-input" title="Color del borde">
+                    <span class="color-picker-text">borde</span>
+                </div>
+                <div class="color-picker-item">
+                    <input type="color" id="lote-fill-picker" value="#3730a3" class="color-input" title="Color del relleno">
+                    <span class="color-picker-text">relleno</span>
+                </div>
+            </div>
+            <div class="opacity-slider-container">
+                <div class="opacity-label-row">
+                    <span class="opacity-title">opacidad</span>
+                    <span id="opacity-label" class="opacity-label">40%</span>
+                </div>
+                <input type="range" id="lote-opacity-slider" min="0" max="100" value="40" class="opacity-slider" title="Opacidad del relleno">
+            </div>
+        </div>
+
+        <div class="panel-divider"></div>
+
+        <!-- Sección: Estadísticas -->
+        <div class="panel-section panel-stats">
+            <span class="section-label">// estado</span>
+            <div class="stat-row">
+                <span class="stat-key">lotes_visibles</span>
+                <span class="stat-val" id="stat-visible">—</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-key">zoom_nivel</span>
+                <span class="stat-val" id="stat-zoom">—</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-key">lat / lon</span>
+                <span class="stat-val" id="stat-coords">—</span>
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- Barra de Herramientas Operativas Flotante (Búsqueda y Dado) -->
+    <div class="visor-top-tools">
+        <div class="search-container-minimal">
+            <input type="text" id="search-lote-input" class="search-input-minimal" placeholder="buscar lote (14 dígs)..." maxlength="14">
+            <button type="button" id="btn-buscar-trigger" class="btn-action-minimal" title="Buscar Lote por ID">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
+        </div>
+        <button type="button" class="btn-action-minimal btn-dice" onclick="cargarLoteAleatorioVisor()" title="Lote Aleatorio">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><circle cx="15.5" cy="15.5" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="8.5" cy="15.5" r="1.5"></circle><circle cx="15.5" cy="8.5" r="1.5"></circle></svg>
+        </button>
+    </div>
+
+    <!-- Modal de Inspección de Lote -->
+    <div id="lote-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="modal-close-btn" class="modal-close-btn" onclick="cerrarLoteModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+
+            <div class="modal-hero">
+                <svg id="modal-lote-svg" width="220" height="220" viewBox="0 0 220 220">
+                    <polygon id="modal-lote-polygon" points="" />
+                </svg>
+                <div id="modal-lote-placeholder" class="placeholder-text">> cargando_geometria...</div>
+            </div>
+
+            <div class="modal-details">
+                <h3 class="modal-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    inspección_predio
+                </h3>
+                <div class="modal-grid">
+                    <div class="modal-item"><strong>ID Catastral</strong><span id="modal-pres-id">—</span></div>
+                    <div class="modal-item"><strong>Localidad</strong><span id="modal-pres-ciudad">—</span></div>
+                    <div class="modal-item"><strong>Área (m²)</strong><span id="modal-pres-area">—</span></div>
+                    <div class="modal-item"><strong>Perímetro (m)</strong><span id="modal-pres-peri">—</span></div>
+                    <div class="modal-item modal-item--wide"><strong>Centroide WGS84</strong><span id="modal-pres-coords">—</span></div>
+                    <div class="modal-item modal-item--wide modal-item--highlight"><strong>Búsqueda PGM Index</strong><span id="modal-pres-time">—</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/map.js?v=1.1"></script>
+    <script src="js/map.js?v=1.6"></script>
 </body>
 </html>

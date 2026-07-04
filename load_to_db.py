@@ -30,14 +30,16 @@ def procesar_e_inyectar_datos(accumulate=False):
             db.rollback()
             print(f"Advertencia al limpiar la tabla: {e}")
             
-    # Obtener el conteo actual de lotes en la base de datos para compensar IDs únicos
-    conteo_actual = 0
+    # Obtener el ID máximo actual en la base de datos para evitar colisiones catastrales
+    max_id_num = 0
     try:
-        conteo_actual = db.execute(text("SELECT COUNT(*) FROM tg_lote;")).scalar() or 0
+        max_id_str = db.execute(text("SELECT MAX(id_lote) FROM tg_lote WHERE SUBSTR(id_lote, 1, 1) = '2';")).scalar()
+        if max_id_str and max_id_str.startswith("21010101") and len(max_id_str) == 14:
+            max_id_num = int(max_id_str[8:])
     except Exception as e:
-        print(f"Advertencia al leer conteo de registros: {e}")
+        print(f"Advertencia al leer ID máximo de registros: {e}")
         
-    print(f"Procesando {len(vias)} polígonos potenciales para PostGIS (conteo actual: {conteo_actual})...")
+    print(f"Procesando {len(vias)} polígonos potenciales para PostGIS (ID máximo inicial: {max_id_num:06d})...")
     
     contador = 0
     try:
@@ -58,8 +60,9 @@ def procesar_e_inyectar_datos(accumulate=False):
             # Crear figura usando Shapely (Coordenadas nativas: WGS84 - SRID 4326)
             poligono_wgs84 = Polygon(coords)
             
-            # Generar un ID de lote simulado único e incremental
-            id_simulado = f"21010101{conteo_actual + idx + 1:06d}" 
+            # Generar un ID de lote simulado único e incremental basado en el máximo existente + contador actual
+            lote_id_num = max_id_num + contador + 1
+            id_simulado = f"21010101{lote_id_num:06d}" 
             
             # Definir la geometría reproyectada a UTM 19S (SRID 32719) usando ST_Transform de PostGIS
             geom_utm = func.ST_Transform(from_shape(poligono_wgs84, srid=4326), 32719)

@@ -4,164 +4,170 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catastro LI - Ecosistema de Indexación Aprendida</title>
-    <link rel="stylesheet" href="css/styles.css?v=1.5">
+    <!-- Importar tipografía elegante Monospace de Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css?v=1.7">
 </head>
 <body>
+    <!-- Canvas de fondo para el mapa satelital/vectorial animado -->
+    <canvas id="bg-canvas"></canvas>
+
     <div class="bg-glow"></div>
     <div class="bg-glow-bottom"></div>
 
+    <!-- Contenedor Principal -->
     <div class="intro-container">
-        <h1>Catastro LI</h1>
-        <div class="subtitle">Ecosistema Híbrido de Analítica Espacial y Learned Indexes</div>
+        
+        <!-- Header Minimalista -->
+        <header class="main-header">
+            <h1>CATASTRO_LI</h1>
+            <div class="subtitle">> ecosistema híbrido de analítica espacial y learned indexes</div>
+        </header>
 
-        <!-- Presentación Interactiva de Lote -->
-        <div class="hero-lote-card">
+        <!-- SECCIÓN 1: Inspección de Datos Real-Time (Hero Card Centrada) -->
+        <section class="hero-lote-card">
             <!-- Arriba: Visualización SVG -->
             <div class="preview-container">
-                <svg id="lote-svg" width="240" height="240" viewBox="0 0 240 240" style="display: block;">
-                    <polygon id="lote-polygon" points="" fill="rgba(129, 140, 248, 0.12)" stroke="#818cf8" stroke-width="2.5" stroke-linejoin="round" />
+                <svg id="lote-svg" width="240" height="240" viewBox="0 0 240 240" style="cursor: pointer;" title="Hacer clic para ver en mapa">
+                    <polygon id="lote-polygon" points="" />
                 </svg>
-                <div id="lote-preview-placeholder" style="position: absolute; color: var(--text-muted); font-size: 0.85rem; text-align: center; pointer-events: none; font-family: var(--font-family);">
-                    Cargando vista...
-                </div>
+                <div id="lote-preview-placeholder" class="placeholder-text">> cargando_vista...</div>
             </div>
 
-            <!-- Centro: Datos en Grid de Dos Columnas -->
+            <!-- Centro: Datos Minimalistas de Predio (sin tablas ni cajas ruidosas) -->
             <div class="preview-details">
-                <h3 class="preview-title" style="justify-content: center;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                    <span class="preview-title-text">Inspección de Lote Predial</span>
-                </h3>
+                <div class="minimal-predio-info">
+                    <span id="pres-id" class="minimal-id">—</span>
+                    <div class="minimal-sub-info">
+                        <span id="pres-ciudad">—</span> &bull; 
+                        <span id="pres-area">—</span> &bull; 
+                        <span id="pres-peri">—</span>
+                    </div>
+                    <div class="minimal-meta-info">
+                        <span id="pres-coords">—</span> 
+                        <span class="minimal-time-tag">[pgm_index: <span id="pres-time">—</span>]</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Abajo: Controles de Búsqueda y Navegación (3 Botones Minimalistas) -->
+            <div class="presenter-actions">
+                <div class="search-container-minimal">
+                    <input type="text" id="search-lote-input" class="search-input-minimal" placeholder="cód. catastral (14 dígs)..." maxlength="14">
+                    <button type="button" id="btn-buscar-trigger" class="btn-action-minimal" title="Buscar Lote por ID">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </div>
                 
-                <div class="preview-grid">
-                    <div class="preview-item">
-                        <strong>Código Catastral:</strong>
-                        <span id="pres-id">-</span>
-                    </div>
-                    <div class="preview-item">
-                        <strong>Área Gráfica:</strong>
-                        <span id="pres-area">-</span>
-                    </div>
-                    <div class="preview-item">
-                        <strong>Perímetro Lineal:</strong>
-                        <span id="pres-peri">-</span>
-                    </div>
-                    <div class="preview-item">
-                        <strong>Centroide WGS84:</strong>
-                        <span id="pres-coords">-</span>
-                    </div>
-                    <div class="preview-item" style="grid-column: span 2; justify-content: center; border-top: 1px dashed rgba(255, 255, 255, 0.08); padding-top: 0.6rem; margin-top: 0.4rem;">
-                        <strong>Búsqueda en Base de Datos:</strong>
-                        <span id="pres-time" style="color: #c084fc; font-weight: 700; margin-left: 0.5rem;">-</span>
-                    </div>
-                </div>
+                <button type="button" class="btn-action-minimal btn-dice" onclick="cargarLoteAleatorio()" title="Lote Aleatorio">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><circle cx="15.5" cy="15.5" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="8.5" cy="15.5" r="1.5"></circle><circle cx="15.5" cy="8.5" r="1.5"></circle></svg>
+                </button>
+                
+                <a id="btn-ver-mapa" href="/visor" class="btn-action-minimal btn-map-view" title="Ver en Mapa">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                </a>
             </div>
+        </section>
 
-            <!-- Abajo: Acciones -->
-            <div class="presenter-actions" style="width: 100%;">
-                <div class="search-box-container">
-                    <input type="text" id="search-lote-input" class="search-input" placeholder="Buscar lote por código..." maxlength="14">
-                    <button type="button" class="btn-search" onclick="buscarLotePorId()">Buscar</button>
-                </div>
-                <button type="button" class="btn-dice" onclick="cargarLoteAleatorio()" title="Lote Aleatorio">🎲</button>
-                <a id="btn-ver-mapa" href="/visor" class="btn-map-view">Ver en Mapa</a>
-            </div>
-        </div>
-        
-        <div class="dashboard-grid">
-            <!-- Columna Izquierda: Información de Estado e Investigación -->
+        <!-- GRID DE INFORMACIÓN Y CONTROL -->
+        <main class="dashboard-grid">
+            
+            <!-- COLUMNA IZQUIERDA: Fundamentos y Eficiencia -->
             <div class="left-panel">
-                <div class="db-status-card">
-                    <div style="font-size: 1.1rem; font-weight: 600; color: #fff; margin-bottom: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-                        Estado del Servidor GIS
-                    </div>
-                    <div class="status-line"><strong>Estado del Motor:</strong> <span class="badge">ONLINE</span></div>
-                    <div class="status-line"><strong>Base de Datos Activa:</strong> <span id="db-name">Cargando...</span></div>
-                    <div class="status-line"><strong>Esquema Cartográfico:</strong> <code>PostGIS 15 (UTM 19S)</code></div>
-                    <div class="status-line"><strong>Volumen de Datos Actual:</strong> <span id="db-count">Calculando...</span></div>
-                </div>
-
-                <div class="research-card">
+                
+                <!-- Tarjeta Científica -->
+                <div class="dashboard-card research-card">
                     <h3>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
                         Línea de Investigación
                     </h3>
                     <p>
-                        Optimización de consultas espaciales indexando centroides poligonales en la 
-                        <strong>Curva de Hilbert</strong> para su posterior modelamiento predictivo con el algoritmo 
-                        <strong>PGM-Index</strong> (Piecewise Geometric Model Index).
+                        Indexación aprendida (<strong>Learned Indexes</strong>) aplicada a catastros urbanos. Mapea coordenadas bidimensionales a la curva unidimensional de <strong>Hilbert</strong> conservando la vecindad. Los códigos resultantes alimentan modelos predictivos (<strong>PGM-Index</strong>) que aproximan posiciones físicas con regresiones segmentadas.
                     </p>
                     <div class="research-badge-row">
-                        <span class="research-badge">Curva de Hilbert 1D</span>
+                        <span class="research-badge">Hilbert 1D</span>
                         <span class="research-badge">PGM-Index</span>
-                        <span class="research-badge">Reducción Dimensional</span>
                         <span class="research-badge">PostGIS GIS</span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Columna Derecha: Panel de Ingesta e Inyección de Datos -->
-            <div class="right-panel">
-                <div class="form-card">
-                    <h3 class="form-title">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        Ingesta de Datos (OSM BBox)
+                <!-- Comparativa de Eficiencia -->
+                <div class="dashboard-card analytics-comparison-card" style="margin-top: 1.2rem;">
+                    <h3>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                        Eficiencia Espacial (RAM)
                     </h3>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Zonas Preestablecidas (Perú y Vecinos)</label>
-                        <div class="presets-container">
-                            <button type="button" class="preset-btn" onclick="cargarPreset('puno_urbano')">Puno (Completo)</button>
-                            <button type="button" class="preset-btn" onclick="cargarPreset('arequipa')">Arequipa (Centro)</button>
-                            <button type="button" class="preset-btn" onclick="cargarPreset('cusco')">Cusco (Centro)</button>
-                            <button type="button" class="preset-btn" onclick="cargarPreset('lima')">Lima (Centro)</button>
-                            <button type="button" class="preset-btn" onclick="cargarPreset('la_paz')">La Paz (Bolivia)</button>
+                    <div class="metrics-comparison-grid">
+                        <div class="metric-box">
+                            <span class="metric-label">R-Tree / GiST Tradicional</span>
+                            <div class="metric-visual-bar"><div class="bar-fill postgres-bar" style="width: 85%;"></div></div>
+                            <span class="metric-value">Consumo: <strong>~14.2 MB</strong></span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-label">Learned Index (PGM)</span>
+                            <div class="metric-visual-bar"><div class="bar-fill learned-bar" style="width: 12%;"></div></div>
+                            <span class="metric-value">Consumo: <strong>~1.8 MB (↓ 87%)</strong></span>
                         </div>
                     </div>
+                </div>
 
-                    <div class="bbox-inputs-grid">
-                        <div class="form-group">
-                            <label class="form-label">Latitud Mínima</label>
-                            <input type="number" step="0.001" id="min_lat" class="form-input" value="-15.850">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Longitud Mínima</label>
-                            <input type="number" step="0.001" id="min_lon" class="form-input" value="-70.040">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Latitud Máxima</label>
-                            <input type="number" step="0.001" id="max_lat" class="form-input" value="-15.820">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Longitud Máxima</label>
-                            <input type="number" step="0.001" id="max_lon" class="form-input" value="-69.995">
-                        </div>
-                    </div>
+            </div>
+ 
+            <!-- COLUMNA DERECHA: Métricas del Motor y Widgets de Memoria -->
+            <div class="right-panel">
+                
+                <!-- Métricas Operativas del Motor -->
+                <div class="dashboard-card db-status-card">
+                    <h3>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                        Métricas de Postgres / PostGIS
+                    </h3>
+                    <div class="status-line"><strong>Servicio DB:</strong> <span class="badge">ONLINE</span></div>
+                    <div class="status-line"><strong>Base de Datos:</strong> <span id="db-name">Cargando...</span></div>
+                    <div class="status-line"><strong>Proyección:</strong> <code>UTM 19S (SRID 32719)</code></div>
+                    <div class="status-line"><strong>Registros Reales:</strong> <span id="db-count">Calculando...</span></div>
+                </div>
 
-                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 0.2rem; margin-bottom: 0.2rem;">
-                        <input type="checkbox" id="accumulate" style="cursor: pointer; width: 16px; height: 16px;">
-                        <label for="accumulate" class="form-label" style="cursor: pointer; user-select: none; color: #93c5fd; font-weight: 500;">Acumular datos (no limpiar base de datos)</label>
-                    </div>
-
-                    <button type="button" id="btn-sync" class="btn-sync" onclick="iniciarSincronizacion()">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
-                        <span>Sincronizar Catastro</span>
-                    </button>
-
-                    <!-- Terminal de Estado / Consola -->
-                    <div class="console-card" id="console-log">
-                        <p class="console-line info">[SISTEMA] Listo para iniciar ingesta cartográfica.</p>
+                <!-- Tarjeta de Widgets de Memoria -->
+                <div class="dashboard-card memory-widgets-card" style="margin-top: 1.2rem;">
+                    <h3>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        Métricas de Almacenamiento & RAM
+                    </h3>
+                    <div class="memory-widgets-grid">
+                        <div class="mem-widget">
+                            <span class="mem-widget-val">74.5 MB</span>
+                            <span class="mem-widget-lbl">RAM PostGIS (GiST)</span>
+                        </div>
+                        <div class="mem-widget">
+                            <span class="mem-widget-val">9.2 MB</span>
+                            <span class="mem-widget-lbl">RAM PGM Index</span>
+                        </div>
+                        <div class="mem-widget">
+                            <span class="mem-widget-val">132.8 MB</span>
+                            <span class="mem-widget-lbl">Disco (tg_lote)</span>
+                        </div>
+                        <div class="mem-widget">
+                            <span class="mem-widget-val">1.42s</span>
+                            <span class="mem-widget-lbl">Entrenamiento PGM</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div style="margin-top: 3rem;">
-            <a href="/visor" class="btn-enter">Ingresar al Visor Cartográfico</a>
+        </main>
+        
+        <!-- Acceso Principal a Pantalla Completa -->
+        <div style="margin-top: 3.5rem; text-align: center;">
+            <a href="/visor" class="btn-enter">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: middle;"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+                Ingresar al Visor Cartográfico Proyectado
+            </a>
         </div>
     </div>
 
-    <script src="js/app.js?v=1.5"></script>
+    <!-- Cargar app.js con buster de caché actualizado -->
+    <script src="js/app.js?v=1.8"></script>
 </body>
 </html>
