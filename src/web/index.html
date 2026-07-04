@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,9 +8,11 @@
     <!-- Importar tipografía elegante Monospace de Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.10">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css?v=2.11">
 </head>
+
 <body>
     <!-- Canvas de fondo para el mapa satelital/vectorial animado -->
     <canvas id="bg-canvas"></canvas>
@@ -19,28 +22,43 @@
 
     <!-- Contenedor Principal -->
     <div class="intro-container">
-        
+
         <!-- Header Minimalista -->
         <!-- Header Minimalista Centrado con Logo Grande -->
-        <header class="main-header" style="flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 1.2rem; border-bottom: 1px dashed rgba(129, 140, 248, 0.15); padding-bottom: 1.5rem; margin-bottom: 2rem; width: 100%;">
+        <header class="main-header"
+            style="flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 1.2rem; border-bottom: 1px dashed rgba(129, 140, 248, 0.15); padding-bottom: 1.5rem; margin-bottom: 2rem; width: 100%;">
             <div style="display: flex; flex-direction: column; align-items: center; gap: 0.8rem; width: 100%;">
-                <img src="assets/LI_solo.png" alt="Catastro LI Logo" style="height: 110px; width: auto; object-fit: contain;" />
-                <h1 style="margin: 0; font-size: 2.8rem; background: linear-gradient(135deg, #ffffff 30%, var(--primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">CATASTRO_LI <span class="brand-coord" style="font-size: 0.85rem; vertical-align: middle;">[ 19S / UTM ]</span></h1>
-                <div class="subtitle" style="font-size: 1.1rem; margin-top: 0.2rem; text-align: center; width: 100%; justify-content: center;">> ecosistema híbrido de analítica espacial y learned indexes</div>
+                <img src="assets/LI_solo.png" alt="Catastro LI Logo"
+                    style="height: 110px; width: auto; object-fit: contain;" />
+                <h1
+                    style="margin: 0; font-size: 2.8rem; background: linear-gradient(135deg, #ffffff 30%, var(--primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    CATASTRO_LI <span class="brand-coord" style="font-size: 0.85rem; vertical-align: middle;">[ 19S /
+                        UTM ]</span></h1>
+                <div class="subtitle"
+                    style="font-size: 1.1rem; margin-top: 0.2rem; text-align: center; width: 100%; justify-content: center;">
+                    > ecosistema híbrido de analítica espacial y learned indexes</div>
             </div>
-            
+
             <!-- Botones de Ingreso e Información -->
-            <div class="header-buttons" style="display: flex; gap: 0.8rem; justify-content: center; align-items: center; margin-top: 0.2rem; width: 100%;">
+            <div class="header-buttons"
+                style="display: flex; gap: 0.8rem; justify-content: center; align-items: center; margin-top: 0.2rem; width: 100%;">
                 <a href="/visor" class="btn-enter-hero-compact" title="Ingresar al Visor Cartográfico Proyectado">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
                         <line x1="8" y1="2" x2="8" y2="18"></line>
                         <line x1="16" y1="6" x2="16" y2="22"></line>
                     </svg>
                     <span>ingresar_visor</span>
                 </a>
-                <button type="button" class="btn-enter-hero-compact" onclick="toggleWikiDrawer(true)" style="background: rgba(99, 102, 241, 0.12); border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc; cursor: pointer;" title="Ver Wiki Científica">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <button type="button" class="btn-enter-hero-compact" onclick="toggleWikiDrawer(true)"
+                    style="background: rgba(99, 102, 241, 0.12); border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc; cursor: pointer;"
+                    title="Ver Wiki Científica">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg>
                     <span>wiki_cientifica</span>
                 </button>
             </div>
@@ -51,7 +69,8 @@
             <!-- Arriba: Visualización SVG -->
             <div class="preview-container">
                 <div id="lote-glow-wrap" class="lote-glow-wrap">
-                    <svg id="lote-svg" width="240" height="240" viewBox="0 0 240 240" style="cursor: pointer;" title="Hacer clic para ver en mapa">
+                    <svg id="lote-svg" width="240" height="240" viewBox="0 0 240 240" style="cursor: pointer;"
+                        title="Hacer clic para ver en mapa">
                         <polygon id="lote-polygon" points="" />
                     </svg>
                     <!-- Glitch Overlay para Lote No Encontrado -->
@@ -69,281 +88,444 @@
 
             <!-- Centro: Datos Minimalistas de Predio (sin tablas ni cajas ruidosas) -->
             <div class="preview-details">
-                <div class="minimal-predio-info" style="display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
+                <div class="minimal-predio-info"
+                    style="display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
                     <span id="pres-id" class="minimal-id">—</span>
-                    <button type="button" id="btn-copy-id" class="btn-copy-minimal" title="Copiar Código Catastral" style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease; outline: none; margin-top: 0.2rem;">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <button type="button" id="btn-copy-id" class="btn-copy-minimal" title="Copiar Código Catastral"
+                        style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease; outline: none; margin-top: 0.2rem;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            style="pointer-events: none;">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
                     </button>
                 </div>
                 <div class="minimal-sub-info">
-                        <span id="pres-ciudad">—</span> &bull; 
-                        <span id="pres-area">—</span> &bull; 
-                        <span id="pres-peri">—</span>
-                    </div>
-                    <div class="minimal-meta-info">
-                        <span id="pres-coords">—</span> 
-                        <span class="minimal-time-tag">[r_tree: <span id="pres-time">—</span>]</span>
-                    </div>
+                    <span id="pres-ciudad">—</span> &bull;
+                    <span id="pres-area">—</span> &bull;
+                    <span id="pres-peri">—</span>
                 </div>
-
-                <div class="r-tree-toggle-row">
-                    <button type="button" id="btn-toggle-r-tree" class="btn-toggle-link">> mostrar_traza_r_tree</button>
+                <div class="minimal-meta-info">
+                    <span id="pres-coords">—</span>
+                    <span class="minimal-time-tag">[r_tree: <span id="pres-time">—</span>]</span>
                 </div>
+            </div>
 
-                <!-- Representación de la Traza de Búsqueda R-Tree (Nodos/Niveles) -->
-                <div class="r-tree-traversal-widget">
-                    <div class="traversal-title">> r_tree_traversal_trace:</div>
-                    <div class="traversal-nodes">
-                        <div class="traversal-node" id="r-tree-n0">
-                            <span class="node-bullet n0-bullet"></span>
-                            <div class="node-text">
-                                <span class="node-index">N0</span>
-                                <span class="node-level">Raíz</span>
-                                <span class="node-meta" id="n0-meta">macro_bbox</span>
-                            </div>
+            <div class="r-tree-toggle-row">
+                <button type="button" id="btn-toggle-r-tree" class="btn-toggle-link">> mostrar_traza_r_tree</button>
+            </div>
+
+            <!-- Representación de la Traza de Búsqueda R-Tree (Nodos/Niveles) -->
+            <div class="r-tree-traversal-widget">
+                <div class="traversal-title">> r_tree_traversal_trace:</div>
+                <div class="traversal-nodes">
+                    <div class="traversal-node" id="r-tree-n0">
+                        <span class="node-bullet n0-bullet"></span>
+                        <div class="node-text">
+                            <span class="node-index">N0</span>
+                            <span class="node-level">Raíz</span>
+                            <span class="node-meta" id="n0-meta">macro_bbox</span>
                         </div>
-                        <div class="traversal-connector" id="r-tree-c0"></div>
-                        <div class="traversal-node" id="r-tree-n1">
-                            <span class="node-bullet n1-bullet"></span>
-                            <div class="node-text">
-                                <span class="node-index">N1</span>
-                                <span class="node-level">Manzana</span>
-                                <span class="node-meta" id="n1-meta">sector_cluster</span>
-                            </div>
+                    </div>
+                    <div class="traversal-connector" id="r-tree-c0"></div>
+                    <div class="traversal-node" id="r-tree-n1">
+                        <span class="node-bullet n1-bullet"></span>
+                        <div class="node-text">
+                            <span class="node-index">N1</span>
+                            <span class="node-level">Manzana</span>
+                            <span class="node-meta" id="n1-meta">sector_cluster</span>
                         </div>
-                        <div class="traversal-connector" id="r-tree-c1"></div>
-                        <div class="traversal-node" id="r-tree-n2">
-                            <span class="node-bullet n2-bullet"></span>
-                            <div class="node-text">
-                                <span class="node-index">N2</span>
-                                <span class="node-level">Predio</span>
-                                <span class="node-meta" id="n2-meta">lote_id</span>
-                            </div>
+                    </div>
+                    <div class="traversal-connector" id="r-tree-c1"></div>
+                    <div class="traversal-node" id="r-tree-n2">
+                        <span class="node-bullet n2-bullet"></span>
+                        <div class="node-text">
+                            <span class="node-index">N2</span>
+                            <span class="node-level">Predio</span>
+                            <span class="node-meta" id="n2-meta">lote_id</span>
                         </div>
                     </div>
                 </div>
             </div>
+    </div>
 
-            <!-- Modo de Depuración Visual (Ejecución Interna) -->
-            <div class="debug-mode-row" style="margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.6rem;">
-                <label class="cyber-switch" style="display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--font-family); font-size: 0.65rem; color: #a5b4fc; cursor: pointer; user-select: none;">
-                    <input type="checkbox" id="debug-mode-checkbox" style="display: none;">
-                    <span class="switch-visual" style="width: 28px; height: 14px; border: 1px solid rgba(129, 140, 248, 0.4); background: rgba(11, 15, 25, 0.6); display: inline-block; position: relative; transition: all 0.2s ease;">
-                        <span class="switch-knob" style="width: 8px; height: 8px; background: rgba(129, 140, 248, 0.6); position: absolute; top: 2px; left: 2px; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);"></span>
-                    </span>
-                    <span>[ ] modo_debug_ejecucion_interna</span>
-                </label>
-            </div>
+    <!-- Modo de Depuración Visual (Ejecución Interna) -->
+    <div class="debug-mode-row"
+        style="margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.6rem;">
+        <label class="cyber-switch"
+            style="display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--font-family); font-size: 0.65rem; color: #a5b4fc; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="debug-mode-checkbox" style="display: none;">
+            <span class="switch-visual"
+                style="width: 28px; height: 14px; border: 1px solid rgba(129, 140, 248, 0.4); background: rgba(11, 15, 25, 0.6); display: inline-block; position: relative; transition: all 0.2s ease;">
+                <span class="switch-knob"
+                    style="width: 8px; height: 8px; background: rgba(129, 140, 248, 0.6); position: absolute; top: 2px; left: 2px; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);"></span>
+            </span>
+            <span>[ ] modo_debug_ejecucion_interna</span>
+        </label>
+    </div>
 
-            <!-- Abajo: Controles de Búsqueda y Navegación (3 Botones Minimalistas) -->
-            <div class="presenter-actions">
-                <div class="search-container-minimal">
-                    <input type="text" id="search-lote-input" class="search-input-minimal" placeholder="cód. catastral (14 dígs)..." maxlength="14">
-                    <button type="button" id="btn-buscar-trigger" class="btn-action-minimal" title="Buscar Lote por ID">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    </button>
-                </div>
-                
-                <button type="button" class="btn-action-minimal btn-dice" onclick="cargarLoteAleatorio()" title="Lote Aleatorio">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><circle cx="15.5" cy="15.5" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="8.5" cy="15.5" r="1.5"></circle><circle cx="15.5" cy="8.5" r="1.5"></circle></svg>
-                </button>
-                
-                <a id="btn-ver-mapa" href="/visor" class="btn-action-minimal btn-map-view" title="Ver en Mapa">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                </a>
-            </div>
-        </section>
-
-        <div class="dashboard-tabs">
-            <button class="tab-btn active" data-tab="research-tab">> cientifico</button>
-            <button class="tab-btn" data-tab="metrics-tab">> métricas</button>
-            <button class="tab-btn" data-tab="efficiency-tab">> rendimiento</button>
-            <button class="tab-btn" data-tab="wiki-tab">> wiki_r_tree</button>
+    <!-- Abajo: Controles de Búsqueda y Navegación (3 Botones Minimalistas) -->
+    <div class="presenter-actions">
+        <div class="search-container-minimal">
+            <input type="text" id="search-lote-input" class="search-input-minimal"
+                placeholder="cód. catastral (14 dígs)..." maxlength="14">
+            <button type="button" id="btn-buscar-trigger" class="btn-action-minimal" title="Buscar Lote por ID">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </button>
         </div>
 
-        <!-- Contenedor de Pestañas (Centradas y con menos ruido visual) -->
-        <main class="dashboard-tabs-container">
-            
-            <!-- PESTAÑA 1: Fundamento Científico -->
-            <div id="research-tab" class="dashboard-card tab-pane active">
-                <h3>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+        <button type="button" class="btn-action-minimal btn-dice" onclick="cargarLoteAleatorio()"
+            title="Lote Aleatorio">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <circle cx="15.5" cy="15.5" r="1.5"></circle>
+                <circle cx="12" cy="12" r="1.5"></circle>
+                <circle cx="8.5" cy="15.5" r="1.5"></circle>
+                <circle cx="15.5" cy="8.5" r="1.5"></circle>
+            </svg>
+        </button>
+
+        <a id="btn-ver-mapa" href="/visor" class="btn-action-minimal btn-map-view" title="Ver en Mapa">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+        </a>
+    </div>
+    </section>
+
+    <div class="dashboard-tabs">
+        <button class="tab-btn active" data-tab="research-tab">> cientifico</button>
+        <button class="tab-btn" data-tab="metrics-tab">> métricas</button>
+        <button class="tab-btn" data-tab="efficiency-tab">> rendimiento</button>
+        <button class="tab-btn" data-tab="wiki-tab">> wiki_r_tree</button>
+    </div>
+
+    <!-- Contenedor de Pestañas (Centradas y con menos ruido visual) -->
+    <main class="dashboard-tabs-container">
+
+        <!-- PESTAÑA 1: Fundamento Científico -->
+        <div id="research-tab" class="dashboard-card tab-pane active">
+            <div
+                style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <h3 style="margin: 0;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
                     Línea de Investigación
                 </h3>
-                <p>
-                    Indexación aprendida (<strong>Learned Indexes</strong>) aplicada a catastros urbanos. Mapea coordenadas bidimensionales a la curva unidimensional de <strong>Hilbert</strong> conservando la vecindad. Los códigos resultantes alimentan modelos predictivos (<strong>PGM-Index</strong>) que aproximan posiciones físicas con regresiones segmentadas.
-                </p>
-                <div class="research-badge-row">
-                    <span class="research-badge">Hilbert 1D</span>
-                    <span class="research-badge">PGM-Index</span>
-                    <span class="research-badge">PostGIS GIS</span>
-                </div>
-            </div>
-
-            <!-- PESTAÑA 2: Métricas del Ecosistema -->
-            <div id="metrics-tab" class="dashboard-card tab-pane">
-                <h3>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                    Métricas del Ecosistema
-                </h3>
-                
-                <div class="lotes-total-widget">
-                    <span class="lotes-total-lbl">lotes_totales_db</span>
-                    <span id="db-count" class="lotes-total-val">Calculando...</span>
-                </div>
-
-                <div class="memory-widgets-grid">
-                    <div class="mem-widget">
-                        <span class="mem-widget-val">74.5 MB</span>
-                        <span class="mem-widget-lbl">RAM PostGIS</span>
-                    </div>
-                    <div class="mem-widget">
-                        <span class="mem-widget-val">9.2 MB</span>
-                        <span class="mem-widget-lbl">RAM PGM Index</span>
-                    </div>
-                    <div class="mem-widget">
-                        <span class="mem-widget-val">132.8 MB</span>
-                        <span class="mem-widget-lbl">Disco (tg_lote)</span>
-                    </div>
-                    <div class="mem-widget">
-                        <span class="mem-widget-val">1.42s</span>
-                        <span class="mem-widget-lbl">Entreno PGM</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PESTAÑA 3: Comparativa de Eficiencia -->
-            <div id="efficiency-tab" class="dashboard-card tab-pane">
-                <h3>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-                    Eficiencia Espacial (RAM)
-                </h3>
-                <div class="metrics-comparison-grid">
-                    <div class="metric-box">
-                        <span class="metric-label">R-Tree / GiST Tradicional</span>
-                        <div class="metric-visual-bar"><div class="bar-fill postgres-bar" style="width: 85%;"></div></div>
-                        <span class="metric-value">Consumo: <strong>~14.2 MB</strong></span>
-                    </div>
-                    <div class="metric-box">
-                        <span class="metric-label">Learned Index (PGM)</span>
-                        <div class="metric-visual-bar"><div class="bar-fill learned-bar" style="width: 12%;"></div></div>
-                        <span class="metric-value">Consumo: <strong>~1.8 MB (↓ 87%)</strong></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PESTAÑA 4: Wiki R-Tree & GiST -->
-            <div id="wiki-tab" class="dashboard-card tab-pane">
-                <h3>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                <!-- Enlace al repositorio principal del ecosistema -->
+                <a href="https://github.com/tu-usuario/catastro_li" target="_blank" rel="noopener noreferrer"
+                    class="research-badge"
+                    style="display: inline-flex; align-items: center; gap: 0.3rem; border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; text-decoration: none; font-size: 0.6rem; background: rgba(168, 85, 247, 0.05); padding: 0.1rem 0.4rem; transition: all 0.2s ease;"
+                    onmouseover="this.style.background='rgba(168, 85, 247, 0.15)'"
+                    onmouseout="this.style.background='rgba(168, 85, 247, 0.05)'">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22">
+                        </path>
                     </svg>
-                    Wiki: Indexación Espacial
-                </h3>
-                <div class="wiki-content" style="font-family: var(--font-family); font-size: 0.72rem; line-height: 1.45; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.8rem; text-align: left; max-height: 155px; overflow-y: auto; padding-right: 0.4rem;">
-                    <div>
-                        <strong style="color: #a855f7; text-transform: lowercase;">1. ¿qué es un r-tree?</strong>
-                        <p style="margin-top: 0.2rem; margin-bottom: 0;">
-                            Es una estructura jerárquica balanceada diseñada para indexar datos multidimensionales (puntos, polígonos). Agrupa objetos cercanos dentro de cajas contenedoras <strong>MBR (Minimum Bounding Rectangles)</strong>. Al buscar, el motor desciende descartando ramas que no intersectan la consulta, reduciendo la complejidad a tiempo logarítmico $O(\log N)$.
-                        </p>
-                    </div>
-                    <div style="border-top: 1px dashed rgba(129, 140, 248, 0.15); padding-top: 0.5rem;">
-                        <strong style="color: #06b6d4; text-transform: lowercase;">2. ¿cómo opera gist en postgresql?</strong>
-                        <p style="margin-top: 0.2rem; margin-bottom: 0;">
-                            <strong>GiST (Generalized Search Tree)</strong> es una plantilla de indexación extensible en PostgreSQL. Permite crear índices personalizados mediante operadores estándar. PostGIS implementa su R-Tree sobre GiST para acelerar consultas espaciales de solape y contención (`&&`, `ST_Contains`).
-                        </p>
-                    </div>
-                    <div style="border-top: 1px dashed rgba(129, 140, 248, 0.15); padding-top: 0.5rem;">
-                        <strong style="color: #10b981; text-transform: lowercase;">3. la alternativa learned index</strong>
-                        <p style="margin-top: 0.2rem; margin-bottom: 0;">
-                            A diferencia del R-Tree/GiST tradicional que almacena MBRs explícitos y punteros en memoria, los **Learned Indexes** mapean las coordenadas a 1D (Curva de Hilbert) y entrenan modelos predictivos (PGM-Index) para aproximar la posición del registro en disco mediante funciones matemáticas en vez de búsquedas jerárquicas.
-                        </p>
-                    </div>
+                    <span>src_repo</span>
+                </a>
+            </div>
+
+            <p style="margin-bottom: 0.8rem;">
+                Indexación aprendida (<strong>Learned Indexes</strong>) aplicada a catastros urbanos. Mapea coordenadas
+                bidimensionales a la curva unidimensional de <strong>Hilbert</strong> conservando la vecindad. Los
+                códigos resultantes alimentan modelos predictivos (<strong>PGM-Index</strong>) que aproximan posiciones
+                físicas con regresiones segmentadas.
+            </p>
+
+            <!-- Fila de Enlaces a la Literatura Fundacional de la Tesis -->
+            <div class="research-links-wrapper"
+                style="display: flex; flex-direction: column; gap: 0.35rem; border-top: 1px dashed rgba(129, 140, 248, 0.15); padding-top: 0.6rem; margin-bottom: 0.6rem;">
+                <span
+                    style="font-size: 0.6rem; color: #6366f1; text-transform: lowercase; font-family: var(--font-family); margin-bottom: 0.1rem;">//
+                    referencias_core:</span>
+
+                <!-- Link 1: Kraska et al. (Learned Indexes) -->
+                <a href="https://dl.acm.org/doi/10.1145/3183713.3196926" target="_blank" rel="noopener noreferrer"
+                    style="display: flex; align-items: center; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); text-decoration: none; font-family: var(--font-family); background: rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border: 1px solid rgba(255,255,255,0.03); transition: all 0.2s;"
+                    onmouseover="this.style.borderColor='rgba(129,140,248,0.2)'; this.style.color='#ffffff';"
+                    onmouseout="this.style.borderColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-muted)';">
+                    <span>↳ Kraska et al. (2018) The Case for Learned Indexes</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6;">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
+
+                <!-- Link 2: Ferragina & Vinciguerra (PGM Index) -->
+                <a href="https://dl.acm.org/doi/10.14778/3397230.3397232" target="_blank" rel="noopener noreferrer"
+                    style="display: flex; align-items: center; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); text-decoration: none; font-family: var(--font-family); background: rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border: 1px solid rgba(255,255,255,0.03); transition: all 0.2s;"
+                    onmouseover="this.style.borderColor='rgba(168,85,247,0.2)'; this.style.color='#ffffff';"
+                    onmouseout="this.style.borderColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-muted)';">
+                    <span>↳ Ferragina & Vinciguerra (2020) The PGM-Index</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6;">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
+
+                <!-- Link 3: Kamel & Faloutsos (Hilbert Spatial) -->
+                <a href="https://dl.acm.org/doi/10.5555/645920.672993" target="_blank" rel="noopener noreferrer"
+                    style="display: flex; align-items: center; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); text-decoration: none; font-family: var(--font-family); background: rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border: 1px solid rgba(255,255,255,0.03); transition: all 0.2s;"
+                    onmouseover="this.style.borderColor='rgba(16,185,129,0.2)'; this.style.color='#ffffff';"
+                    onmouseout="this.style.borderColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-muted)';">
+                    <span>↳ Kamel & Faloutsos (1994) Hilbert R-Tree</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6;">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
+            </div>
+
+            <!-- Badges de Estado e Infraestructura -->
+            <div class="research-badge-row" style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                <span class="research-badge"
+                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(129, 140, 248, 0.08); border: 1px solid rgba(129, 140, 248, 0.2); color: #a5b4fc;">Hilbert
+                    1D</span>
+                <span class="research-badge"
+                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.2); color: #c084fc;">PGM-Index</span>
+                <span class="research-badge"
+                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); color: #34d399;">PostGIS
+                    GIS</span>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: Métricas del Ecosistema -->
+        <div id="metrics-tab" class="dashboard-card tab-pane">
+            <h3>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+                Métricas del Ecosistema
+            </h3>
+
+            <div class="lotes-total-widget">
+                <span class="lotes-total-lbl">lotes_totales_db</span>
+                <span id="db-count" class="lotes-total-val">Calculando...</span>
+            </div>
+
+            <div class="memory-widgets-grid">
+                <div class="mem-widget">
+                    <span class="mem-widget-val">74.5 MB</span>
+                    <span class="mem-widget-lbl">RAM PostGIS</span>
+                </div>
+                <div class="mem-widget">
+                    <span class="mem-widget-val">9.2 MB</span>
+                    <span class="mem-widget-lbl">RAM PGM Index</span>
+                </div>
+                <div class="mem-widget">
+                    <span class="mem-widget-val">132.8 MB</span>
+                    <span class="mem-widget-lbl">Disco (tg_lote)</span>
+                </div>
+                <div class="mem-widget">
+                    <span class="mem-widget-val">1.42s</span>
+                    <span class="mem-widget-lbl">Entreno PGM</span>
                 </div>
             </div>
-        </main>
+        </div>
+
+        <!-- PESTAÑA 3: Comparativa de Eficiencia -->
+        <div id="efficiency-tab" class="dashboard-card tab-pane">
+            <h3>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                Eficiencia Espacial (RAM)
+            </h3>
+            <div class="metrics-comparison-grid">
+                <div class="metric-box">
+                    <span class="metric-label">R-Tree / GiST Tradicional</span>
+                    <div class="metric-visual-bar">
+                        <div class="bar-fill postgres-bar" style="width: 85%;"></div>
+                    </div>
+                    <span class="metric-value">Consumo: <strong>~14.2 MB</strong></span>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-label">Learned Index (PGM)</span>
+                    <div class="metric-visual-bar">
+                        <div class="bar-fill learned-bar" style="width: 12%;"></div>
+                    </div>
+                    <span class="metric-value">Consumo: <strong>~1.8 MB (↓ 87%)</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 4: Wiki R-Tree & GiST -->
+        <div id="wiki-tab" class="dashboard-card tab-pane">
+            <h3>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+                Wiki: Indexación Espacial
+            </h3>
+            <div class="wiki-content"
+                style="font-family: var(--font-family); font-size: 0.72rem; line-height: 1.45; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.8rem; text-align: left; max-height: 155px; overflow-y: auto; padding-right: 0.4rem;">
+                <div>
+                    <strong style="color: #a855f7; text-transform: lowercase;">1. ¿qué es un r-tree?</strong>
+                    <p style="margin-top: 0.2rem; margin-bottom: 0;">
+                        Es una estructura jerárquica balanceada diseñada para indexar datos multidimensionales (puntos,
+                        polígonos). Agrupa objetos cercanos dentro de cajas contenedoras <strong>MBR (Minimum Bounding
+                            Rectangles)</strong>. Al buscar, el motor desciende descartando ramas que no intersectan la
+                        consulta, reduciendo la complejidad a tiempo logarítmico $O(\log N)$.
+                    </p>
+                </div>
+                <div style="border-top: 1px dashed rgba(129, 140, 248, 0.15); padding-top: 0.5rem;">
+                    <strong style="color: #06b6d4; text-transform: lowercase;">2. ¿cómo opera gist en
+                        postgresql?</strong>
+                    <p style="margin-top: 0.2rem; margin-bottom: 0;">
+                        <strong>GiST (Generalized Search Tree)</strong> es una plantilla de indexación extensible en
+                        PostgreSQL. Permite crear índices personalizados mediante operadores estándar. PostGIS
+                        implementa su R-Tree sobre GiST para acelerar consultas espaciales de solape y contención (`&&`,
+                        `ST_Contains`).
+                    </p>
+                </div>
+                <div style="border-top: 1px dashed rgba(129, 140, 248, 0.15); padding-top: 0.5rem;">
+                    <strong style="color: #10b981; text-transform: lowercase;">3. la alternativa learned index</strong>
+                    <p style="margin-top: 0.2rem; margin-bottom: 0;">
+                        A diferencia del R-Tree/GiST tradicional que almacena MBRs explícitos y punteros en memoria, los
+                        **Learned Indexes** mapean las coordenadas a 1D (Curva de Hilbert) y entrenan modelos
+                        predictivos (PGM-Index) para aproximar la posición del registro en disco mediante funciones
+                        matemáticas en vez de búsquedas jerárquicas.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
     </div>
 
     <!-- WIKI DRAWER LATERAL -->
     <div id="wiki-drawer" class="wiki-drawer">
         <div class="drawer-header">
             <h3>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                 </svg>
                 wiki_cientifica
             </h3>
             <button type="button" class="drawer-close-btn" onclick="toggleWikiDrawer(false)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
             </button>
         </div>
-        
+
         <div class="drawer-tabs">
-            <button type="button" class="drawer-tab-btn active" onclick="switchDrawerTab('drawer-tab-a')">1. r-tree & gist</button>
-            <button type="button" class="drawer-tab-btn" onclick="switchDrawerTab('drawer-tab-b')">2. hilbert 1d</button>
-            <button type="button" class="drawer-tab-btn" onclick="switchDrawerTab('drawer-tab-c')">3. learned index</button>
+            <button type="button" class="drawer-tab-btn active" onclick="switchDrawerTab('drawer-tab-a')">1. r-tree &
+                gist</button>
+            <button type="button" class="drawer-tab-btn" onclick="switchDrawerTab('drawer-tab-b')">2. hilbert
+                1d</button>
+            <button type="button" class="drawer-tab-btn" onclick="switchDrawerTab('drawer-tab-c')">3. learned
+                index</button>
             <button type="button" class="drawer-tab-btn" onclick="switchDrawerTab('drawer-tab-d')">4. comandos</button>
         </div>
-        
+
         <div class="drawer-content">
             <!-- pestaña A: R-Tree & GiST -->
             <div id="drawer-tab-a" class="drawer-pane active">
                 <h4 style="color: #a855f7;">// el paradigma jerárquico</h4>
                 <div class="wiki-section">
                     <strong>el concepto (guttman, 1984):</strong>
-                    <p>Un R-Tree agrupa los datos espaciales utilizando Cajas de Contorno Mínimo (MBRs, Minimum Bounding Rectangles). Los nodos padre contienen cajas que envuelven a los nodos hijos, formando una estructura de árbol balanceada.</p>
+                    <p>Un R-Tree agrupa los datos espaciales utilizando Cajas de Contorno Mínimo (MBRs, Minimum Bounding
+                        Rectangles). Los nodos padre contienen cajas que envuelven a los nodos hijos, formando una
+                        estructura de árbol balanceada.</p>
                 </div>
                 <div class="wiki-section">
                     <strong>el rol de gist:</strong>
-                    <p>GiST (Generalized Search Tree) no es una estructura rígida, sino una plantilla/interfaz extensible dentro de PostgreSQL. Permite crear índices personalizados sobre tipos de datos espaciales implementando métodos como Consistent, Union, Compress y Penalty. PostGIS monta su R-Tree sobre esta infraestructura.</p>
+                    <p>GiST (Generalized Search Tree) no es una estructura rígida, sino una plantilla/interfaz
+                        extensible dentro de PostgreSQL. Permite crear índices personalizados sobre tipos de datos
+                        espaciales implementando métodos como Consistent, Union, Compress y Penalty. PostGIS monta su
+                        R-Tree sobre esta infraestructura.</p>
                 </div>
-                <div class="wiki-section" style="border-left: 2px solid #ef4444; padding-left: 0.5rem; background: rgba(239, 68, 68, 0.03);">
+                <div class="wiki-section"
+                    style="border-left: 2px solid #ef4444; padding-left: 0.5rem; background: rgba(239, 68, 68, 0.03);">
                     <strong style="color: #ef4444;">la problemática:</strong>
-                    <p>El solapamiento (overlap) de cajas obliga a la búsqueda a explorar múltiples ramas del árbol, incrementando las lecturas a disco ($O(\log N)$ en el peor de los casos, degradándose con alta densidad de parcelas).</p>
+                    <p>El solapamiento (overlap) de cajas obliga a la búsqueda a explorar múltiples ramas del árbol,
+                        incrementando las lecturas a disco ($O(\log N)$ en el peor de los casos, degradándose con alta
+                        densidad de parcelas).</p>
                 </div>
             </div>
-            
+
             <!-- pestaña B: Curva de Hilbert -->
             <div id="drawer-tab-b" class="drawer-pane">
                 <h4 style="color: #06b6d4;">// reducción dimensional</h4>
                 <div class="wiki-section">
                     <strong>el concepto (kamel & faloutsos, 1994):</strong>
-                    <p>Una curva de llenado de espacio (space-filling curve) fractal que serpentea de forma continua por el plano bidimensional, asignando un valor numérico lineal (String o BigInt) a cada celda espacial.</p>
+                    <p>Una curva de llenado de espacio (space-filling curve) fractal que serpentea de forma continua por
+                        el plano bidimensional, asignando un valor numérico lineal (String o BigInt) a cada celda
+                        espacial.</p>
                 </div>
                 <div class="wiki-section">
                     <strong>la ventaja clave:</strong>
-                    <p>Preserva la localidad espacial. Polígonos que están geográficamente contiguos en el plano urbano de Puno tendrán códigos de Hilbert sumamente cercanos en la secuencia ordenada en disco, transformando un problema de rango 2D en una búsqueda de rango 1D.</p>
+                    <p>Preserva la localidad espacial. Polígonos que están geográficamente contiguos en el plano urbano
+                        de Puno tendrán códigos de Hilbert sumamente cercanos en la secuencia ordenada en disco,
+                        transformando un problema de rango 2D en una búsqueda de rango 1D.</p>
                 </div>
             </div>
-            
+
             <!-- pestaña C: PGM-Index -->
             <div id="drawer-tab-c" class="drawer-pane">
                 <h4 style="color: #10b981;">// índices aprendidos</h4>
                 <div class="wiki-section">
                     <strong>el concepto (ferragina & vinciguerra, 2020):</strong>
-                    <p>En lugar de almacenar punteros en un árbol jerárquico, se ordenan las claves de Hilbert en un arreglo continuo. Una serie de modelos matemáticos de regresión lineal por tramos (PLR) aprenden la función de distribución acumulativa de las claves físicas.</p>
+                    <p>En lugar de almacenar punteros en un árbol jerárquico, se ordenan las claves de Hilbert en un
+                        arreglo continuo. Una serie de modelos matemáticos de regresión lineal por tramos (PLR) aprenden
+                        la función de distribución acumulativa de las claves físicas.</p>
                 </div>
                 <div class="wiki-section">
                     <strong>la ventaja:</strong>
-                    <p>Al ingresar una coordenada convertida a Hilbert, el modelo estima la posición en memoria con una cota de error máxima garantizada ($\epsilon$). La búsqueda final se reduce a una búsqueda binaria local de tamaño $2\epsilon+1$, logrando accesos veloces ($O(1)$ o $O(\log \epsilon)$) ocupando apenas el 12% de RAM en comparación al R-Tree tradicional.</p>
+                    <p>Al ingresar una coordenada convertida a Hilbert, el modelo estima la posición en memoria con una
+                        cota de error máxima garantizada ($\epsilon$). La búsqueda final se reduce a una búsqueda
+                        binaria local de tamaño $2\epsilon+1$, logrando accesos veloces ($O(1)$ o $O(\log \epsilon)$)
+                        ocupando apenas el 12% de RAM en comparación al R-Tree tradicional.</p>
                 </div>
             </div>
-            
+
             <!-- pestaña D: Comandos y Utilidades -->
             <div id="drawer-tab-d" class="drawer-pane">
                 <h4 style="color: #6366f1;">// utilidades y comandos</h4>
-                
+
                 <div class="wiki-section">
                     <strong>levantar base de datos y backend:</strong>
                     <p>Inicia PostgreSQL, PostGIS y el backend de FastAPI en segundo plano.</p>
-                    <div class="wiki-command-block" style="background: rgba(5,7,12,0.8); border: 1px solid rgba(129,140,248,0.15); padding: 0.5rem; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.65rem; color: #a5b4fc;">
+                    <div class="wiki-command-block"
+                        style="background: rgba(5,7,12,0.8); border: 1px solid rgba(129,140,248,0.15); padding: 0.5rem; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.65rem; color: #a5b4fc;">
                         <span>make up</span>
-                        <button type="button" class="btn-copy-command" data-cmd="make up" title="Copiar Comando" style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease;">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <button type="button" class="btn-copy-command" data-cmd="make up" title="Copiar Comando"
+                            style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="pointer-events: none;">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -351,21 +533,38 @@
                 <div class="wiki-section">
                     <strong>generación procedural offline (18 ciudades):</strong>
                     <p>Poblar la base de datos de manera local y procedimental con distorsión y rotación.</p>
-                    <div class="wiki-command-block" style="background: rgba(5,7,12,0.8); border: 1px solid rgba(129,140,248,0.15); padding: 0.5rem; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.65rem; color: #a5b4fc;">
+                    <div class="wiki-command-block"
+                        style="background: rgba(5,7,12,0.8); border: 1px solid rgba(129,140,248,0.15); padding: 0.5rem; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.65rem; color: #a5b4fc;">
                         <span>python populate_all_cities.py</span>
-                        <button type="button" class="btn-copy-command" data-cmd="python populate_all_cities.py" title="Copiar Comando" style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease;">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <button type="button" class="btn-copy-command" data-cmd="python populate_all_cities.py"
+                            title="Copiar Comando"
+                            style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="pointer-events: none;">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
                         </button>
                     </div>
                 </div>
 
                 <div class="wiki-section">
                     <strong>escalar base de datos catastral (clonación):</strong>
-                    <p>Escala localmente multiplicando por 7 el volumen de datos catastrales (para estrés de Learned Index).</p>
-                    <div class="wiki-command-block" style="background: rgba(5,7,12,0.8); border: 1px solid rgba(129,140,248,0.15); padding: 0.5rem; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.65rem; color: #a5b4fc;">
+                    <p>Escala localmente multiplicando por 7 el volumen de datos catastrales (para estrés de Learned
+                        Index).</p>
+                    <div class="wiki-command-block"
+                        style="background: rgba(5,7,12,0.8); border: 1px solid rgba(129,140,248,0.15); padding: 0.5rem; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.65rem; color: #a5b4fc;">
                         <span>python scale_db.py</span>
-                        <button type="button" class="btn-copy-command" data-cmd="python scale_db.py" title="Copiar Comando" style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease;">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <button type="button" class="btn-copy-command" data-cmd="python scale_db.py"
+                            title="Copiar Comando"
+                            style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="pointer-events: none;">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -373,23 +572,32 @@
                 <div class="wiki-section">
                     <strong>ingesta real overpass api (24 zonas):</strong>
                     <p>Descarga y procesa en tiempo real lotes desde OpenStreetMap para toda la región.</p>
-                    <div class="wiki-command-block" style="background: rgba(5,7,12,0.8); border: 1px solid rgba(129,140,248,0.15); padding: 0.5rem; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.65rem; color: #a5b4fc;">
+                    <div class="wiki-command-block"
+                        style="background: rgba(5,7,12,0.8); border: 1px solid rgba(129,140,248,0.15); padding: 0.5rem; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 0.65rem; color: #a5b4fc;">
                         <span>python ingest_peru_cities.py</span>
-                        <button type="button" class="btn-copy-command" data-cmd="python ingest_peru_cities.py" title="Copiar Comando" style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease;">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <button type="button" class="btn-copy-command" data-cmd="python ingest_peru_cities.py"
+                            title="Copiar Comando"
+                            style="background: none; border: none; color: rgba(129, 140, 248, 0.5); cursor: pointer; display: inline-flex; align-items: center; padding: 0.2rem; transition: all 0.2s ease;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="pointer-events: none;">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- OSCURECEDOR DE FONDO PARA EL DRAWER -->
     <div id="drawer-overlay" class="drawer-overlay" onclick="toggleWikiDrawer(false)"></div>
 
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Cargar app.js con buster de caché actualizado -->
-    <script src="js/app.js?v=2.9"></script>
+    <script src="js/app.js?v=2.10"></script>
 </body>
+
 </html>

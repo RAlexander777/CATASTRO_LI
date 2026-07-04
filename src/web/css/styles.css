@@ -2728,3 +2728,12 @@ optgroup { background: #0d1117; color: #64748b; }
     transform: scale(0.95);
 }
 
+.visor-floating-brand:hover {
+    border-color: rgba(129, 140, 248, 0.45) !important;
+    background: rgba(11, 15, 25, 0.95) !important;
+    box-shadow: 0 0 15px rgba(129, 140, 248, 0.15), 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+}
+.visor-floating-brand:active {
+    transform: scale(0.98);
+}
+

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="css/styles.css?v=2.14" />
+    <link rel="stylesheet" href="css/styles.css?v=2.15" />
 </head>
 <body class="map-body">
 
@@ -23,11 +23,11 @@
         <div class="loader-text">> cargando_sector...</div>
     </div>
 
-    <!-- Logo y Título Flotante en la Esquina Superior Izquierda -->
-    <div class="visor-floating-brand" style="position: absolute; top: 15px; left: 15px; z-index: 1000; display: flex; align-items: center; gap: 0.5rem; background: rgba(11, 15, 25, 0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(129, 140, 248, 0.2); padding: 0.5rem 0.8rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55); border-radius: 4px; pointer-events: none;">
-        <img src="assets/LI_solo.png" alt="Catastro LI Logo" style="height: 22px; width: auto; object-fit: contain; filter: drop-shadow(0 0 6px rgba(129, 140, 248, 0.5));" />
-        <span style="font-family: 'Fira Code', monospace; font-size: 0.8rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 1px; filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.15));">catastro_li</span>
-    </div>
+    <!-- Logo y Título Flotante en la Esquina Superior Izquierda (Enlace a Index) -->
+    <a href="/" class="visor-floating-brand" style="position: absolute; top: 15px; left: 15px; z-index: 1000; display: flex; align-items: center; gap: 0.6rem; background: rgba(11, 15, 25, 0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(129, 140, 248, 0.2); padding: 0.6rem 1rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55); border-radius: 4px; pointer-events: auto; text-decoration: none; transition: border-color 0.2s ease, background-color 0.2s ease;">
+        <img src="assets/LI_solo.png" alt="Catastro LI Logo" style="height: 30px; width: auto; object-fit: contain;" />
+        <span style="font-family: 'Fira Code', monospace; font-size: 1.05rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 1.2px;">catastro_li</span>
+    </a>
 
     <!-- Mapa principal -->
     <div id="map"></div>
@@ -35,19 +35,8 @@
     <!-- Panel de control flotante lateral -->
     <aside id="visor-panel" class="visor-panel">
 
-        <!-- Cabecera del panel -->
-        <div class="panel-header" style="justify-content: flex-end;">
-            <a href="/" class="panel-back" title="Volver al terminal">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="15 18 9 12 15 6"/>
-                </svg>
-            </a>
-        </div>
-
-        <div class="panel-divider"></div>
-
         <!-- Sección: Ciudad -->
-        <div class="panel-section">
+        <div class="panel-section" style="margin-top: 0.5rem;">
             <span class="section-label">// ciudad</span>
             <select id="city-selector" class="panel-select">
                 <optgroup label="Perú">
@@ -212,6 +201,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="js/map.js?v=2.9"></script>
+    <script src="js/map.js?v=2.10"></script>
 </body>
 </html>
