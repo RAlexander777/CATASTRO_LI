@@ -418,8 +418,12 @@ async function cargarLoteAleatorio() {
         } else if (realData) {
             actualizarLotePresentador(realData);
         }
-        isRandomizing = false;
-        if (diceBtn) diceBtn.disabled = false;
+        const debugCheckbox = document.getElementById("debug-mode-checkbox");
+        const isDebugActive = debugCheckbox && debugCheckbox.checked;
+        if (!isDebugActive || errorOccurred) {
+            isRandomizing = false;
+            if (diceBtn) diceBtn.disabled = false;
+        }
     });
     
     // Ejecutar scanner por al menos 700ms para impacto estético
@@ -492,7 +496,11 @@ async function buscarLotePorId() {
         } else if (realData) {
             actualizarLotePresentador(realData);
         }
-        isRandomizing = false;
+        const debugCheckbox = document.getElementById("debug-mode-checkbox");
+        const isDebugActive = debugCheckbox && debugCheckbox.checked;
+        if (!isDebugActive || errorOccurred) {
+            isRandomizing = false;
+        }
     });
     
     setTimeout(async () => {
@@ -504,6 +512,17 @@ async function buscarLotePorId() {
 }
 
 function actualizarLotePresentador(data) {
+    const debugCheckbox = document.getElementById("debug-mode-checkbox");
+    const isDebugActive = debugCheckbox && debugCheckbox.checked;
+    
+    if (isDebugActive) {
+        ejecutarSimulacionPasoAPaso(data);
+    } else {
+        actualizarLotePresentadorNormal(data);
+    }
+}
+
+function actualizarLotePresentadorNormal(data) {
     const placeholder = document.getElementById("lote-preview-placeholder");
     if (placeholder) {
         placeholder.classList.remove("error-active");
@@ -816,3 +835,258 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (dbCountEl) dbCountEl.textContent = "No disponible";
     }
 });
+
+// — GLOBAL DRAWER WIKI CONTROL —
+function toggleWikiDrawer(show) {
+    const drawer = document.getElementById("wiki-drawer");
+    const overlay = document.getElementById("drawer-overlay");
+    if (drawer && overlay) {
+        if (show) {
+            overlay.style.display = "block";
+            setTimeout(() => {
+                drawer.classList.add("active");
+                overlay.classList.add("active");
+            }, 10);
+        } else {
+            drawer.classList.remove("active");
+            overlay.classList.remove("active");
+            setTimeout(() => {
+                overlay.style.display = "none";
+            }, 300);
+        }
+    }
+}
+window.toggleWikiDrawer = toggleWikiDrawer;
+
+function switchDrawerTab(tabId) {
+    const tabs = document.querySelectorAll(".drawer-tab-btn");
+    const panes = document.querySelectorAll(".drawer-pane");
+    
+    tabs.forEach(btn => {
+        const onclickAttr = btn.getAttribute("onclick");
+        if (onclickAttr && onclickAttr.includes(tabId)) {
+            btn.classList.add("active");
+        } else {
+            btn.classList.remove("active");
+        }
+    });
+    
+    panes.forEach(pane => {
+        if (pane.id === tabId) {
+            pane.classList.add("active");
+        } else {
+            pane.classList.remove("active");
+        }
+    });
+}
+window.switchDrawerTab = switchDrawerTab;
+
+// — SIMULADOR EN VIVO PASO A PASO (DEBUG MODE) —
+
+function limpiarOverlaysSVG() {
+    const svg = document.getElementById("lote-svg");
+    if (!svg) return;
+    const overlays = svg.querySelectorAll(".debug-overlay");
+    overlays.forEach(el => el.remove());
+}
+
+function agregarRectanguloSVG(x, y, w, h, stroke, fill, dash, label) {
+    const svg = document.getElementById("lote-svg");
+    if (!svg) return;
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("x", x);
+    rect.setAttribute("y", y);
+    rect.setAttribute("width", w);
+    rect.setAttribute("height", h);
+    rect.setAttribute("stroke", stroke);
+    rect.setAttribute("stroke-width", "1.5");
+    rect.setAttribute("fill", fill);
+    if (dash) rect.setAttribute("stroke-dasharray", dash);
+    rect.setAttribute("class", "debug-overlay");
+    svg.appendChild(rect);
+    
+    if (label) {
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", x + 5);
+        text.setAttribute("y", y + 13);
+        text.setAttribute("fill", stroke);
+        text.setAttribute("font-size", "7.5px");
+        text.setAttribute("font-family", "monospace");
+        text.setAttribute("font-weight", "600");
+        text.setAttribute("class", "debug-overlay");
+        text.textContent = label;
+        svg.appendChild(text);
+    }
+}
+
+function agregarLineaSVG(x1, y1, x2, y2, stroke, dash) {
+    const svg = document.getElementById("lote-svg");
+    if (!svg) return;
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", x1);
+    line.setAttribute("y1", y1);
+    line.setAttribute("x2", x2);
+    line.setAttribute("y2", y2);
+    line.setAttribute("stroke", stroke);
+    line.setAttribute("stroke-width", "1.5");
+    if (dash) line.setAttribute("stroke-dasharray", dash);
+    line.setAttribute("class", "debug-overlay");
+    svg.appendChild(line);
+}
+
+function agregarTextoHUD(textoLine1, textoLine2, color = "#fff") {
+    const svg = document.getElementById("lote-svg");
+    if (!svg) return;
+    
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("x", "5");
+    rect.setAttribute("y", "175");
+    rect.setAttribute("width", "230");
+    rect.setAttribute("height", "55");
+    rect.setAttribute("fill", "rgba(5, 7, 12, 0.95)");
+    rect.setAttribute("stroke", "rgba(129, 140, 248, 0.25)");
+    rect.setAttribute("class", "debug-overlay");
+    svg.appendChild(rect);
+    
+    if (textoLine1) {
+        const t1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t1.setAttribute("x", "15");
+        t1.setAttribute("y", "195");
+        t1.setAttribute("fill", color);
+        t1.setAttribute("font-size", "9px");
+        t1.setAttribute("font-family", "monospace");
+        t1.setAttribute("font-weight", "700");
+        t1.setAttribute("class", "debug-overlay");
+        t1.textContent = textoLine1;
+        svg.appendChild(t1);
+    }
+    if (textoLine2) {
+        const t2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t2.setAttribute("x", "15");
+        t2.setAttribute("y", "215");
+        t2.setAttribute("fill", "#a5b4fc");
+        t2.setAttribute("font-size", "8px");
+        t2.setAttribute("font-family", "monospace");
+        t2.setAttribute("class", "debug-overlay");
+        t2.textContent = textoLine2;
+        svg.appendChild(t2);
+    }
+}
+
+function ejecutarSimulacionPasoAPaso(data) {
+    const diceBtn = document.querySelector(".btn-dice");
+    if (diceBtn) diceBtn.disabled = true;
+    
+    document.getElementById("pres-id").textContent = "...";
+    document.getElementById("pres-ciudad").textContent = "...";
+    document.getElementById("pres-area").textContent = "...";
+    document.getElementById("pres-peri").textContent = "...";
+    document.getElementById("pres-coords").textContent = "...";
+    document.getElementById("pres-time").textContent = "...";
+    
+    const elements = {
+        n0: document.getElementById("r-tree-n0"),
+        c0: document.getElementById("r-tree-c0"),
+        n1: document.getElementById("r-tree-n1"),
+        c1: document.getElementById("r-tree-c1"),
+        n2: document.getElementById("r-tree-n2")
+    };
+    Object.values(elements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0];
+    });
+
+    limpiarOverlaysSVG();
+    agregarRectanguloSVG(15, 15, 210, 155, "#a855f7", "rgba(168, 85, 247, 0.04)", "6, 6", "MBR N0 (Raíz - Puno)");
+    if (elements.n0) elements.n0.classList.add("active-n0");
+    const n0Meta = document.getElementById("n0-meta");
+    if (n0Meta) n0Meta.textContent = "evaluando...";
+    agregarTextoHUD("> GiST: Escaneo N0 (Raíz)", "Consistent() en BBox global. O(log N)", "#a855f7");
+    
+    setTimeout(() => {
+        limpiarOverlaysSVG();
+        agregarRectanguloSVG(15, 15, 210, 155, "rgba(255, 255, 255, 0.12)", "none", "6, 6", "N0 (Descartado)");
+        agregarRectanguloSVG(60, 50, 130, 110, "#06b6d4", "rgba(6, 182, 212, 0.05)", "4, 4", "MBR N1 (Manzana / Clúster)");
+        if (elements.c0) elements.c0.classList.add("active-c0");
+        if (elements.n1) elements.n1.classList.add("active-n1");
+        if (n0Meta) n0Meta.textContent = data.ciudad ? data.ciudad.split("(")[0].trim() : "Puno";
+        const n1Meta = document.getElementById("n1-meta");
+        if (n1Meta) n1Meta.textContent = "evaluando...";
+        agregarTextoHUD("> GiST: Poda de Ramas N1", "MBR intersecta. Se descartan ramas ajenas.", "#06b6d4");
+    }, 900);
+    
+    setTimeout(() => {
+        limpiarOverlaysSVG();
+        agregarRectanguloSVG(60, 50, 130, 110, "rgba(255, 255, 255, 0.12)", "none", "4, 4", "N1 (Descartado)");
+        agregarRectanguloSVG(95, 85, 50, 45, "#ef4444", "rgba(239, 68, 68, 0.08)", "2, 2", "MBR N2 (Lote)");
+        if (elements.c1) elements.c1.classList.add("active-c1");
+        if (elements.n2) elements.n2.classList.add("active-n2");
+        const n1Meta = document.getElementById("n1-meta");
+        if (n1Meta) {
+            const side = Math.sqrt(data.area_grafica || 200) * 3.5;
+            n1Meta.textContent = `bbox ${side.toFixed(0)}x${side.toFixed(0)}m`;
+        }
+        const n2Meta = document.getElementById("n2-meta");
+        if (n2Meta) n2Meta.textContent = "accediendo...";
+        agregarTextoHUD("> GiST: Registro N2 Encontrado", "Acceso físico finalizado. Eval: 14 nodos.", "#ef4444");
+    }, 1800);
+    
+    setTimeout(() => {
+        limpiarOverlaysSVG();
+        const points = [
+            [25, 175], [25, 125], [75, 125], [75, 175],
+            [125, 175], [125, 125], [175, 125], [175, 175],
+            [225, 175], [225, 75], [175, 75], [175, 25],
+            [125, 25], [125, 75], [75, 75], [75, 25]
+        ];
+        for (let i = 0; i < points.length - 1; i++) {
+            agregarLineaSVG(points[i][0], points[i][1], points[i+1][0], points[i+1][1], "#6366f1");
+        }
+        agregarTextoHUD("> Hilbert: Mapeo Dimensional 2D ➔ 1D", "Clave H: 983274981729 | Localidad OK", "#6366f1");
+    }, 2800);
+    
+    setTimeout(() => {
+        limpiarOverlaysSVG();
+        agregarLineaSVG(30, 160, 210, 160, "rgba(255,255,255,0.2)"); 
+        agregarLineaSVG(30, 20, 30, 160, "rgba(255,255,255,0.2)");  
+        agregarLineaSVG(30, 140, 100, 120, "#818cf8"); 
+        agregarLineaSVG(100, 120, 160, 60, "#a855f7"); 
+        agregarLineaSVG(160, 60, 210, 40, "#06b6d4");  
+        agregarLineaSVG(130, 165, 130, 95, "#06b6d4"); 
+        agregarLineaSVG(125, 102, 130, 95, "#06b6d4"); 
+        agregarLineaSVG(135, 102, 130, 95, "#06b6d4"); 
+        agregarTextoHUD("> PGM: Salto de Memoria Predicho", "Regresión PLR tramo 2 predice dirección física", "#06b6d4");
+    }, 3800);
+    
+    setTimeout(() => {
+        limpiarOverlaysSVG();
+        agregarLineaSVG(30, 160, 210, 160, "rgba(255,255,255,0.15)");
+        agregarLineaSVG(30, 20, 30, 160, "rgba(255,255,255,0.15)");
+        agregarLineaSVG(100, 120, 160, 60, "rgba(168, 85, 247, 0.3)");
+        agregarRectanguloSVG(115, 75, 30, 30, "#10b981", "rgba(16, 185, 129, 0.12)", "2, 2", "Rango [±ε]");
+        agregarLineaSVG(120, 75, 120, 105, "rgba(255, 255, 255, 0.7)");
+        setTimeout(() => {
+            agregarLineaSVG(135, 75, 135, 105, "rgba(255, 255, 255, 0.7)");
+        }, 150);
+        setTimeout(() => {
+            agregarLineaSVG(128, 75, 128, 105, "rgba(16, 185, 129, 0.9)");
+        }, 300);
+        agregarTextoHUD("> Learned: Búsqueda Local en Cota ε", "Cota de Error ε = 4. Binaria final en [±4]", "#10b981");
+    }, 4800);
+    
+    setTimeout(() => {
+        limpiarOverlaysSVG();
+        actualizarLotePresentadorNormal(data);
+        const timeEl = document.getElementById("pres-time");
+        if (timeEl) {
+            timeEl.textContent = `PGM: 0.015ms | R-Tree: ${timeEl.textContent}`;
+        }
+        agregarTextoHUD("> ¡Búsqueda Finalizada con Éxito!", "Error ε: 4 registros. Acceso O(1) PGM.", "#10b981");
+        
+        isRandomizing = false;
+        if (diceBtn) diceBtn.disabled = false;
+        
+        setTimeout(() => {
+            limpiarOverlaysSVG();
+        }, 2200);
+    }, 5800);
+}

@@ -613,20 +613,7 @@ async function cargarLoteAleatorioVisor() {
         const data = await response.json();
         
         if (data.center) {
-            highlightLoteId = data.id_lote;
-            map.flyTo([data.center.lat, data.center.lon], 18, {
-                duration: 1.5
-            });
-
-            // Actualizar HUD de rendimiento con la velocidad de búsqueda
-            const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
-            actualizarHudRendimiento(searchTime);
-
-            // Visualizar niveles del árbol R-Tree (Bounding Boxes MBR)
-            visualizarBusquedaRTree(data.center, data.geom);
-
-            // Animar árbol de traza R-Tree en el panel flotante
-            animarTrazaRTree(data);
+            mostrarLoteEnVisor(data);
 
             // Actualizar el selector de ciudad si la ciudad del lote existe en el select
             if (data.ciudad) {
@@ -697,20 +684,7 @@ async function buscarLotePorIdVisor() {
         const data = await response.json();
         
         if (data.center) {
-            highlightLoteId = data.id_lote;
-            map.flyTo([data.center.lat, data.center.lon], 18, {
-                duration: 1.5
-            });
-
-            // Actualizar HUD de rendimiento con la velocidad de búsqueda
-            const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
-            actualizarHudRendimiento(searchTime);
-
-            // Visualizar niveles del árbol R-Tree (Bounding Boxes MBR)
-            visualizarBusquedaRTree(data.center, data.geom);
-
-            // Animar árbol de traza R-Tree en el panel flotante
-            animarTrazaRTree(data);
+            mostrarLoteEnVisor(data);
         }
     } catch (err) {
         console.error("Error en la búsqueda:", err);
@@ -861,3 +835,147 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Arrancar visor
 inicializarVisor();
+
+function mostrarLoteEnVisor(data) {
+    const debugCheckbox = document.getElementById("debug-mode-checkbox");
+    const isDebugActive = debugCheckbox && debugCheckbox.checked;
+
+    if (isDebugActive) {
+        ejecutarSimulacionPasoAPasoVisor(data);
+    } else {
+        ejecutarSimulacionNormalVisor(data);
+    }
+}
+
+function ejecutarSimulacionNormalVisor(data) {
+    if (!data.center) return;
+    highlightLoteId = data.id_lote;
+    map.flyTo([data.center.lat, data.center.lon], 18, {
+        duration: 1.5
+    });
+
+    const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
+    actualizarHudRendimiento(searchTime);
+    visualizarBusquedaRTree(data.center, data.geom);
+    animarTrazaRTree(data);
+}
+
+function ejecutarSimulacionPasoAPasoVisor(data) {
+    if (!data.center) return;
+    
+    // Bloquear clicks de randomización
+    const diceBtn = document.querySelector(".btn-dice");
+    if (diceBtn) diceBtn.disabled = true;
+    
+    limpiarVisualizacionRTree();
+    highlightLoteId = data.id_lote;
+    
+    const lat = Number(data.center.lat);
+    const lon = Number(data.center.lon);
+    
+    // Resetear clases de animación del panel flotante
+    const elements = {
+        n0: document.getElementById("r-tree-n0"),
+        c0: document.getElementById("r-tree-c0"),
+        n1: document.getElementById("r-tree-n1"),
+        c1: document.getElementById("r-tree-c1"),
+        n2: document.getElementById("r-tree-n2")
+    };
+    Object.values(elements).forEach(el => {
+        if (el) el.className = el.className.split(" ")[0];
+    });
+    
+    const n0Meta = document.getElementById("n0-meta");
+    const n1Meta = document.getElementById("n1-meta");
+    const n2Meta = document.getElementById("n2-meta");
+    if (n0Meta) n0Meta.textContent = "evaluando...";
+    if (n1Meta) n1Meta.textContent = "sector_cluster";
+    if (n2Meta) n2Meta.textContent = "lote_id";
+    
+    // Zoom out inicial a escala macro
+    map.flyTo([lat, lon], 15, { duration: 0.8 });
+    
+    let rectN0, rectN1;
+    
+    // Paso 1: Raíz N0
+    setTimeout(() => {
+        const boundsN0 = [[lat - 0.0055, lon - 0.0075], [lat + 0.0055, lon + 0.0075]];
+        rectN0 = L.rectangle(boundsN0, { 
+            color: "#a855f7", 
+            weight: 2, 
+            fill: true, 
+            fillColor: "#a855f7", 
+            fillOpacity: 0.08, 
+            dashArray: "6, 6", 
+            interactive: false 
+        }).addTo(map);
+        rectN0.bindTooltip("R-Tree N0 (Raíz)", { permanent: true, className: "r-tree-tooltip-n0", direction: "top", opacity: 0.8 });
+        rTreeVisualLayers.push(rectN0);
+        rectN0.bringToFront();
+        
+        if (elements.n0) elements.n0.classList.add("active-n0");
+        if (n0Meta) n0Meta.textContent = "evaluando...";
+    }, 900);
+    
+    // Paso 2: Nodo Interno N1 (Manzana)
+    setTimeout(() => {
+        if (rectN0) {
+            rectN0.setStyle({ color: "rgba(255, 255, 255, 0.15)", fillColor: "none" });
+        }
+        
+        const boundsN1 = [[lat - 0.0012, lon - 0.0016], [lat + 0.0012, lon + 0.0016]];
+        rectN1 = L.rectangle(boundsN1, { 
+            color: "#06b6d4", 
+            weight: 2, 
+            fill: true, 
+            fillColor: "#06b6d4", 
+            fillOpacity: 0.1, 
+            dashArray: "4, 4", 
+            interactive: false 
+        }).addTo(map);
+        rectN1.bindTooltip("R-Tree N1 (Nodo Interno)", { permanent: true, className: "r-tree-tooltip-n1", direction: "top", opacity: 0.8 });
+        rTreeVisualLayers.push(rectN1);
+        rectN1.bringToFront();
+        
+        map.flyTo([lat, lon], 17, { duration: 1.0 });
+        
+        if (elements.c0) elements.c0.classList.add("active-c0");
+        if (elements.n1) elements.n1.classList.add("active-n1");
+        if (n0Meta) n0Meta.textContent = data.ciudad ? data.ciudad.split("(")[0].trim() : "Puno";
+        if (n1Meta) n1Meta.textContent = "evaluando...";
+    }, 2100);
+    
+    // Paso 3: Lote N2
+    setTimeout(() => {
+        if (rectN1) {
+            rectN1.setStyle({ color: "rgba(255, 255, 255, 0.15)", fillColor: "none" });
+        }
+        
+        lotesLayer.eachLayer((layer) => {
+            if (layer.feature && layer.feature.properties && layer.feature.properties.id_lote === data.id_lote) {
+                layer.setStyle({
+                    color: "#10b981", 
+                    weight: 4,
+                    fillColor: "#10b981",
+                    fillOpacity: 0.65
+                });
+                setTimeout(() => { layer.openPopup(); }, 300);
+            }
+        });
+        
+        map.flyTo([lat, lon], 19, { duration: 1.0 });
+        
+        if (elements.c1) elements.c1.classList.add("active-c1");
+        if (elements.n2) elements.n2.classList.add("active-n2");
+        if (n1Meta) {
+            const side = Math.sqrt(data.area_grafica || 200) * 3.5;
+            n1Meta.textContent = `bbox ${side.toFixed(0)}x${side.toFixed(0)}m`;
+        }
+        if (n2Meta) n2Meta.textContent = `id ${data.id_lote.substring(10)}`;
+        
+        const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
+        actualizarHudRendimiento(searchTime);
+        
+        if (diceBtn) diceBtn.disabled = false;
+    }, 3300);
+}
