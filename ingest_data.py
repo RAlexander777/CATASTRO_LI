@@ -1,23 +1,23 @@
 import requests
 import json
 
-def descargar_cartografia_puno():
+def descargar_cartografia_puno(bbox=(-15.850, -70.040, -15.820, -69.995)):
     """
     Consulta la API de Overpass para extraer los polígonos de construcciones y parcelas
-    dentro del área urbana consolidada de Puno
+    dentro de una región delimitada (bbox = min_lat, min_lon, max_lat, max_lon)
     """
-    print("Iniciando la descarga de datos vectoriales libres de Puno...")
+    print(f"Iniciando la descarga de datos vectoriales libres para bbox {bbox}...")
     
     overpass_url = "http://overpass-api.de/api/interpreter"
+    min_lat, min_lon, max_lat, max_lon = bbox
     
-    overpass_query = """
+    overpass_query = f"""
     [out:json][timeout:90];
     (
-      node["building"](-15.850,-70.040,-15.820,-69.995);
-      way["building"](-15.850,-70.040,-15.820,-69.995);
-      relation["building"](-15.850,-70.040,-15.820,-69.995);
+      way["building"]({min_lat},{min_lon},{max_lat},{max_lon});
     );
-    out center;
+    (._; >;);
+    out body;
     """
     
     headers = {

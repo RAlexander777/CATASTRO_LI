@@ -1,24 +1,43 @@
 import json
 from shapely.geometry import Polygon
 from sqlalchemy.orm import Session
+from sqlalchemy import func, text
 from geoalchemy2.shape import from_shape
 from datetime import date
 from src.config.database import SessionLocal, engine
 from src.database.models_grafico import TgLote
 
-def procesar_e_inyectar_datos():
+def procesar_e_inyectar_datos(accumulate=False):
     # 1. Leer el archivo JSON crudo
     with open("puno_raw_data.json", "r", encoding="utf-8") as f:
         raw_data = json.load(f)
     
     elements = raw_data.get("elements", [])
     
-    # Crear un mapa rápido de nodos para reconstrucir las geometrías de las vías
+    # Crear un mapa rápido de nodos para reconstruir las geometrías de las vías
     nodos = {e["id"]: (e["lon"], e["lat"]) for e in elements if e["type"] == "node"}
     vias = [e for e in elements if e["type"] == "way"]
     
     db: Session = SessionLocal()
-    print(f"Procesando {len(vias)} polígonos potenciales para PostGIS...")
+    
+    # Truncar la tabla solo si no queremos acumular datos
+    if not accumulate:
+        try:
+            print("Limpiando registros previos en la tabla 'tg_lote'...")
+            db.execute(text("TRUNCATE TABLE tg_lote CASCADE;"))
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"Advertencia al limpiar la tabla: {e}")
+            
+    # Obtener el conteo actual de lotes en la base de datos para compensar IDs únicos
+    conteo_actual = 0
+    try:
+        conteo_actual = db.execute(text("SELECT COUNT(*) FROM tg_lote;")).scalar() or 0
+    except Exception as e:
+        print(f"Advertencia al leer conteo de registros: {e}")
+        
+    print(f"Procesando {len(vias)} polígonos potenciales para PostGIS (conteo actual: {conteo_actual})...")
     
     contador = 0
     try:
@@ -39,18 +58,20 @@ def procesar_e_inyectar_datos():
             # Crear figura usando Shapely (Coordenadas nativas: WGS84 - SRID 4326)
             poligono_wgs84 = Polygon(coords)
             
-            # Generar un ID de lote simulado respetando la longitud de la estructura oficial (14 caracteres)
-            id_simulado = f"21010101{idx+1:06d}" 
+            # Generar un ID de lote simulado único e incremental
+            id_simulado = f"21010101{conteo_actual + idx + 1:06d}" 
             
-            # Instanciar el modelo ORM. 
-            # PostGIS se encargará de reproyectar internamente de 4326 a 32719 usando ST_Transform
+            # Definir la geometría reproyectada a UTM 19S (SRID 32719) usando ST_Transform de PostGIS
+            geom_utm = func.ST_Transform(from_shape(poligono_wgs84, srid=4326), 32719)
+            
+            # Instanciar el modelo ORM.
+            # Calculamos área y perímetro directamente en PostGIS durante la inserción.
             lote_gis = TgLote(
                 id_lote=id_simulado,
-                area_grafica=None,  # Se puede calcular post-inserción mediante base de datos
-                peri_grafico=None,
+                area_grafica=func.ST_Area(geom_utm),
+                peri_grafico=func.ST_Perimeter(geom_utm),
                 fech_actua=date.today(),
-                # Inyectamos indicando explícitamente que los datos de entrada vienen en SRID 4326
-                objcad_lote_gemo=from_shape(poligono_wgs84, srid=4326)
+                objcad_lote_gemo=geom_utm
             )
             
             db.add(lote_gis)
@@ -58,21 +79,6 @@ def procesar_e_inyectar_datos():
             
         db.commit()
         print(f"Inyección finalizada con éxito. Se insertaron {contador} lotes urbanos en 'tg_lote'.")
-        
-        # Ejecutar script SQL nativo para forzar la conversión formal a UTM 19S (SRID 32719) y calcular áreas
-        print("Reproyectando geometrías al estándar métrico oficial UTM 19S (SRID 32719)...")
-        with engine.begin() as connection:
-            connection.execute("""
-                ALTER TABLE tg_lote 
-                ALTER COLUMN objcad_lote_gemo 
-                TYPE geometry(Polygon, 32719) 
-                USING ST_Transform(objcad_lote_gemo, 32719);
-                
-                UPDATE tg_lote 
-                SET area_grafica = ST_Area(objcad_lote_gemo),
-                    peri_grafico = ST_Perimeter(objcad_lote_gemo);
-            """)
-        print("Cálculo de áreas y perímetros vectoriales completado.")
         
     except Exception as e:
         db.rollback()

@@ -5,21 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor Cartográfico - Catastro LI</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; }
-        #map { height: 100%; width: 100%; background-color: #f4f4f4; }
-        .back-btn {
-            position: absolute; top: 10px; right: 10px; z-index: 1000;
-            background: white; padding: 0.5rem 1rem; border-radius: 4px;
-            text-decoration: none; color: #2c3e50; font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-family: sans-serif;
-        }
-        .back-btn:hover { background: #f4f4f4; }
-    </style>
+    <link rel="stylesheet" href="css/styles.css" />
 </head>
-<body>
+<body class="map-body">
 
-    <a href="index.html" class="back-btn">← Volver al Panel</a>
+    <header class="map-header">
+        <h2 class="map-title">Visor Cartográfico - Catastro LI</h2>
+        
+        <!-- Navegación rápida por ciudades -->
+        <div class="navigation-control" style="display: flex; align-items: center; gap: 0.6rem;">
+            <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500; font-family: var(--font-family);">Ir a Localidad:</span>
+            <select id="city-selector" onchange="irACiudad(this.value)" style="background: rgba(17, 24, 39, 0.8); border: 1px solid rgba(59, 130, 246, 0.3); color: #fff; border-radius: 6px; padding: 0.4rem 1.2rem 0.4rem 0.8rem; font-family: var(--font-family); font-size: 0.9rem; cursor: pointer; outline: none; transition: all 0.2s ease;">
+                <option value="" disabled selected>Seleccione una ciudad...</option>
+                <option value="puno">Puno</option>
+                <option value="arequipa">Arequipa</option>
+                <option value="cusco">Cusco</option>
+                <option value="lima">Lima</option>
+                <option value="trujillo">Trujillo</option>
+                <option value="chiclayo">Chiclayo</option>
+                <option value="piura">Piura</option>
+                <option value="iquitos">Iquitos</option>
+                <option value="pucallpa">Pucallpa</option>
+                <option value="ayacucho">Ayacucho</option>
+            </select>
+        </div>
+
+        <a href="/" class="back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Volver al Panel
+        </a>
+    </header>
+
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
