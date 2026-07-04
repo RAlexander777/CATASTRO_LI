@@ -1,4 +1,5 @@
 import datetime
+import time
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -148,3 +149,69 @@ def obtener_estado_sincronizacion():
     """
     global sync_status
     return sync_status
+
+@router.get("/random")
+def obtener_lote_aleatorio(db: Session = Depends(get_db)):
+    """
+    Recupera un lote de forma aleatoria de la base de datos con su geometría y centroide.
+    """
+    start_time = time.perf_counter()
+    query = text("""
+        SELECT 
+            id_lote,
+            area_grafica,
+            peri_grafico,
+            ST_AsGeoJSON(ST_Transform(objcad_lote_gemo, 4326))::json AS geom,
+            ST_X(ST_Centroid(ST_Transform(objcad_lote_gemo, 4326))) AS lon,
+            ST_Y(ST_Centroid(ST_Transform(objcad_lote_gemo, 4326))) AS lat
+        FROM tg_lote
+        WHERE objcad_lote_gemo IS NOT NULL
+        ORDER BY random()
+        LIMIT 1;
+    """)
+    result = db.execute(query).first()
+    elapsed_time_ms = (time.perf_counter() - start_time) * 1000
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="No hay lotes registrados en el catastro.")
+        
+    return {
+        "id_lote": result.id_lote,
+        "area_grafica": float(result.area_grafica) if result.area_grafica is not None else None,
+        "peri_grafico": float(result.peri_grafico) if result.peri_grafico is not None else None,
+        "geom": result.geom,
+        "center": {"lat": result.lat, "lon": result.lon},
+        "execution_time_ms": round(elapsed_time_ms, 3)
+    }
+
+@router.get("/{id_lote}")
+def obtener_lote_por_id(id_lote: str, db: Session = Depends(get_db)):
+    """
+    Recupera un lote específico por su código catastral (ID).
+    """
+    start_time = time.perf_counter()
+    query = text("""
+        SELECT 
+            id_lote,
+            area_grafica,
+            peri_grafico,
+            ST_AsGeoJSON(ST_Transform(objcad_lote_gemo, 4326))::json AS geom,
+            ST_X(ST_Centroid(ST_Transform(objcad_lote_gemo, 4326))) AS lon,
+            ST_Y(ST_Centroid(ST_Transform(objcad_lote_gemo, 4326))) AS lat
+        FROM tg_lote
+        WHERE id_lote = :id_lote AND objcad_lote_gemo IS NOT NULL;
+    """)
+    result = db.execute(query, {"id_lote": id_lote}).first()
+    elapsed_time_ms = (time.perf_counter() - start_time) * 1000
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Lote no encontrado en el catastro.")
+        
+    return {
+        "id_lote": result.id_lote,
+        "area_grafica": float(result.area_grafica) if result.area_grafica is not None else None,
+        "peri_grafico": float(result.peri_grafico) if result.peri_grafico is not None else None,
+        "geom": result.geom,
+        "center": {"lat": result.lat, "lon": result.lon},
+        "execution_time_ms": round(elapsed_time_ms, 3)
+    }

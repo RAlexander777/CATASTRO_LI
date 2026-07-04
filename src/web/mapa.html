@@ -15,7 +15,7 @@
         <!-- Navegación rápida por ciudades -->
         <div class="navigation-control" style="display: flex; align-items: center; gap: 0.6rem;">
             <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500; font-family: var(--font-family);">Ir a Localidad:</span>
-            <select id="city-selector" onchange="irACiudad(this.value)" style="background: rgba(17, 24, 39, 0.8); border: 1px solid rgba(59, 130, 246, 0.3); color: #fff; border-radius: 6px; padding: 0.4rem 1.2rem 0.4rem 0.8rem; font-family: var(--font-family); font-size: 0.9rem; cursor: pointer; outline: none; transition: all 0.2s ease;">
+            <select id="city-selector" style="background: rgba(17, 24, 39, 0.8); border: 1px solid rgba(59, 130, 246, 0.3); color: #fff; border-radius: 6px; padding: 0.4rem 1.2rem 0.4rem 0.8rem; font-family: var(--font-family); font-size: 0.9rem; cursor: pointer; outline: none; transition: all 0.2s ease;">
                 <option value="" disabled selected>Seleccione una ciudad...</option>
                 <option value="puno">Puno</option>
                 <option value="arequipa">Arequipa</option>
@@ -39,6 +39,6 @@
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/map.js"></script>
+    <script src="js/map.js?v=1.1"></script>
 </body>
 </html>

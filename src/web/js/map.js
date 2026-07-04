@@ -56,6 +56,9 @@ const lotesLayer = L.geoJSON(null, {
 // Controlador de abortos para evitar colisiones de peticiones cruzadas al mover el mapa rápidamente
 let activeAbortController = null;
 
+// Variable global para destacar un lote específico buscado en la introducción
+let highlightLoteId = null;
+
 // Función para cargar los lotes intersectados por el Bounding Box de la pantalla
 async function cargarLotesPorViewport() {
     const zoom = map.getZoom();
@@ -97,6 +100,28 @@ async function cargarLotesPorViewport() {
         lotesLayer.clearLayers();
         lotesLayer.addData(data);
         
+        // Destacar el lote buscado si se encuentra en este viewport
+        if (highlightLoteId) {
+            lotesLayer.eachLayer((layer) => {
+                if (layer.feature && layer.feature.properties && layer.feature.properties.id_lote === highlightLoteId) {
+                    // Abrir popup de forma diferida para dar tiempo a Leaflet
+                    setTimeout(() => {
+                        layer.openPopup();
+                    }, 300);
+                    
+                    // Aplicar estilo de destaque (borde rojo brillante)
+                    layer.setStyle({
+                        color: "#ef4444",
+                        weight: 3.5,
+                        fillColor: "#ef4444",
+                        fillOpacity: 0.65
+                    });
+                }
+            });
+            // Opcional: limpiar la variable tras abrir el popup una vez para que no interfiera en movimientos futuros
+            highlightLoteId = null;
+        }
+        
         if (infoMsg) {
             const count = data.features ? data.features.length : 0;
             infoMsg.innerHTML = `<span style="color: #10b981; font-weight:600;">⚡ ${count} parcelas cargadas (Zoom: ${zoom})</span>`;
@@ -112,9 +137,29 @@ async function cargarLotesPorViewport() {
     }
 }
 
-// Inicializar el visor enfocando la extensión general de datos de Puno
+// Inicializar el visor enfocando la extensión general de datos o coordenadas de búsqueda
 async function inicializarVisor() {
     const infoMsg = document.getElementById("info-msg");
+    
+    // Leer parámetros de la URL de búsqueda (si existen)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlLat = parseFloat(urlParams.get("lat"));
+    const urlLon = parseFloat(urlParams.get("lon"));
+    const urlZoom = parseInt(urlParams.get("zoom")) || 17;
+    const urlId = urlParams.get("id");
+    
+    if (urlId) {
+        highlightLoteId = urlId;
+    }
+    
+    // Si se especifican coordenadas en la URL, enfocar directamente
+    if (!isNaN(urlLat) && !isNaN(urlLon)) {
+        map.setView([urlLat, urlLon], urlZoom);
+        map.on('moveend', cargarLotesPorViewport);
+        await cargarLotesPorViewport();
+        return;
+    }
+    
     try {
         // Hacemos una consulta rápida simplificada (a nivel macro)
         const response = await fetch('/api/lotes/?zoom=11');
@@ -172,8 +217,18 @@ function irACiudad(ciudad) {
     }
 }
 
-// Exponer la función globalmente para el control HTML
+// Exponer la función globalmente para compatibilidad
 window.irACiudad = irACiudad;
+
+// Vincular el evento change dinámicamente desde JS
+document.addEventListener("DOMContentLoaded", () => {
+    const selector = document.getElementById("city-selector");
+    if (selector) {
+        selector.addEventListener("change", (e) => {
+            irACiudad(e.target.value);
+        });
+    }
+});
 
 // Arrancar visor
 inicializarVisor();

@@ -1,4 +1,4 @@
-# Force reload after accumulation API updates
+# Force reload after search timer addition
 import os
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware

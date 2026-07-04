@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catastro LI - Ecosistema de Indexación Aprendida</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=1.5">
 </head>
 <body>
     <div class="bg-glow"></div>
@@ -13,6 +13,60 @@
     <div class="intro-container">
         <h1>Catastro LI</h1>
         <div class="subtitle">Ecosistema Híbrido de Analítica Espacial y Learned Indexes</div>
+
+        <!-- Presentación Interactiva de Lote -->
+        <div class="hero-lote-card">
+            <!-- Arriba: Visualización SVG -->
+            <div class="preview-container">
+                <svg id="lote-svg" width="240" height="240" viewBox="0 0 240 240" style="display: block;">
+                    <polygon id="lote-polygon" points="" fill="rgba(129, 140, 248, 0.12)" stroke="#818cf8" stroke-width="2.5" stroke-linejoin="round" />
+                </svg>
+                <div id="lote-preview-placeholder" style="position: absolute; color: var(--text-muted); font-size: 0.85rem; text-align: center; pointer-events: none; font-family: var(--font-family);">
+                    Cargando vista...
+                </div>
+            </div>
+
+            <!-- Centro: Datos en Grid de Dos Columnas -->
+            <div class="preview-details">
+                <h3 class="preview-title" style="justify-content: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span class="preview-title-text">Inspección de Lote Predial</span>
+                </h3>
+                
+                <div class="preview-grid">
+                    <div class="preview-item">
+                        <strong>Código Catastral:</strong>
+                        <span id="pres-id">-</span>
+                    </div>
+                    <div class="preview-item">
+                        <strong>Área Gráfica:</strong>
+                        <span id="pres-area">-</span>
+                    </div>
+                    <div class="preview-item">
+                        <strong>Perímetro Lineal:</strong>
+                        <span id="pres-peri">-</span>
+                    </div>
+                    <div class="preview-item">
+                        <strong>Centroide WGS84:</strong>
+                        <span id="pres-coords">-</span>
+                    </div>
+                    <div class="preview-item" style="grid-column: span 2; justify-content: center; border-top: 1px dashed rgba(255, 255, 255, 0.08); padding-top: 0.6rem; margin-top: 0.4rem;">
+                        <strong>Búsqueda en Base de Datos:</strong>
+                        <span id="pres-time" style="color: #c084fc; font-weight: 700; margin-left: 0.5rem;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Abajo: Acciones -->
+            <div class="presenter-actions" style="width: 100%;">
+                <div class="search-box-container">
+                    <input type="text" id="search-lote-input" class="search-input" placeholder="Buscar lote por código..." maxlength="14">
+                    <button type="button" class="btn-search" onclick="buscarLotePorId()">Buscar</button>
+                </div>
+                <button type="button" class="btn-dice" onclick="cargarLoteAleatorio()" title="Lote Aleatorio">🎲</button>
+                <a id="btn-ver-mapa" href="/visor" class="btn-map-view">Ver en Mapa</a>
+            </div>
+        </div>
         
         <div class="dashboard-grid">
             <!-- Columna Izquierda: Información de Estado e Investigación -->
@@ -108,6 +162,6 @@
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=1.5"></script>
 </body>
 </html>
