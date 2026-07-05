@@ -275,6 +275,22 @@ Los resultados de las pruebas experimentales ejecutadas sobre el dataset catastr
   <img src="src/web/assets/figura3_sensibilidad.png" alt="Análisis de Sensibilidad (Epsilon)" width="370" />
 </p>
 
+### 📊 Validación Estadística Rigurosa (N = 1,000)
+
+Para corroborar científicamente la ventaja del Learned Index frente a PostGIS, se realizó una validación estadística formal sobre una muestra aleatoria pareada de 1,000 búsquedas:
+
+| Estructura | Media (ms) | Mediana (ms) | Desv. Est. (ms) | Mínimo (ms) | Máximo (ms) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **R-Tree (PostGIS GiST)** | 0.6737 | 0.6395 | 0.2385 | 0.2452 | 3.1884 |
+| **PGM-Index (Learned)** | 0.0196 | 0.0180 | 0.0096 | 0.0094 | 0.2252 |
+
+*   **Aceleración Media (Speedup):** **36.93x** (Mediana: **34.48x**, Máxima: **128.29x**).
+*   **Prueba de Hipótesis (Wilcoxon Signed-Rank):** Los tiempos de consulta no siguen una distribución normal (Shapiro-Wilk $p < 0.05$, $p_R = 7.62 \times 10^{-36}$, $p_P = 8.30 \times 10^{-49}$). Se aplicó la prueba no paramétrica de Wilcoxon pareada, obteniendo un valor estadístico de **0.00** y un **p-valor de $3.33 \times 10^{-165}$**, lo que confirma de forma categórica que la aceleración del PGM-Index es estadísticamente significativa ($p < 0.001$).
+
+<p align="center">
+  <img src="PAPER/figura_boxplot.png" alt="Boxplot Comparativo de Latencias (Escala Logarítmica)" width="480" />
+</p>
+
 ---
 
 ## 🔬 Benchmark Masivo Secreto

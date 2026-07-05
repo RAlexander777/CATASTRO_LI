@@ -185,7 +185,6 @@ async def ejecutar_benchmark(req: BenchmarkRequest, request: Request, db: Sessio
     rows: list[dict] = []
     rtree_times: list[float] = []
     pgm_times: list[float] = []
-    speedups: list[float] = []
     failed = 0
     cache_flushes = 0
     total_cache_flush_time_s = 0.0
@@ -238,10 +237,9 @@ async def ejecutar_benchmark(req: BenchmarkRequest, request: Request, db: Sessio
             failed += 1
             continue
 
-        speedup = rtree_ms / pgm_ms if pgm_ms > 0 else 0.0
+        speedup = rtree_ms / pgm_ms if pgm_ms > 0 else float('inf')
         rtree_times.append(rtree_ms)
         pgm_times.append(pgm_ms)
-        speedups.append(speedup)
 
         row = {
             "id_lote": s.id_lote,
@@ -260,13 +258,16 @@ async def ejecutar_benchmark(req: BenchmarkRequest, request: Request, db: Sessio
         rows.append(row)
 
     # 5) Resumen estadístico
+    rtree_mean = sum(rtree_times) / len(rtree_times) if rtree_times else 0.0
+    pgm_mean = sum(pgm_times) / len(pgm_times) if pgm_times else 0.0
+    summary_speedup = (rtree_mean / pgm_mean) if pgm_mean > 0 else float('inf')
     summary = {
         "requested_n": req.n_lots,
         "successful_n": len(rows),
         "failed_n": failed,
         "rtree_ms": _summary_stats(rtree_times),
         "pgm_ms": _summary_stats(pgm_times),
-        "speedup_ratio": _summary_stats(speedups),
+        "speedup_ratio": {"mean": round(summary_speedup, 4)},
     }
 
     return {

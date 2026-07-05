@@ -31,12 +31,14 @@ class PGMEvaluator:
         print("Iniciando entrenamiento del PGM-Index sobre Catastro Gráfico...")
         start_time = time.perf_counter()
         
-        # 1. Recuperar todos los lotes urbanos con sus centroides proyectados (UTM 19S / SRID 32719)
+        # 1. Recuperar todos los lotes urbanos con sus centroides proyectados (UTM 19S / SRID 32719) y geográficos
         query = text("""
             SELECT 
                 id_lote,
                 ST_X(ST_Centroid(objcad_lote_gemo)) AS utm_x,
                 ST_Y(ST_Centroid(objcad_lote_gemo)) AS utm_y,
+                ST_X(ST_Centroid(ST_Transform(objcad_lote_gemo, 4326))) AS lon,
+                ST_Y(ST_Centroid(ST_Transform(objcad_lote_gemo, 4326))) AS lat,
                 area_grafica,
                 peri_grafico
             FROM tg_lote
@@ -60,6 +62,8 @@ class PGMEvaluator:
                 "id_lote": r.id_lote,
                 "utm_x": r.utm_x,
                 "utm_y": r.utm_y,
+                "lon": r.lon,
+                "lat": r.lat,
                 "area_grafica": r.area_grafica,
                 "peri_grafico": r.peri_grafico
             }))
@@ -257,8 +261,8 @@ class PGMEvaluator:
         from src.api.endpoints.lotes import obtener_ciudad_lote
         ciudad = obtener_ciudad_lote(lote_db.id_lote, lote_db.lat, lote_db.lon, db)
         
-        # Relación de velocidad
-        speedup = rtree_time_ms / (search_time_ms or 0.0001)
+        # Relación de velocidad (ratio de medias, no media de ratios)
+        speedup = rtree_time_ms / search_time_ms if search_time_ms else float('inf')
 
         # Detalles del segmento del PGM en el que se inspeccionó la clave
         # (útil para depuración / visualizador — qué regresión se aplicó)
@@ -283,6 +287,14 @@ class PGMEvaluator:
                 "learned_search_time_ms": round(search_time_ms, 4),
                 "rtree_search_time_ms": round(rtree_time_ms, 4),
                 "speedup_ratio": round(speedup, 2),
+                "neighborhood": [
+                    {
+                        "id_lote": l["id_lote"],
+                        "lat": l["lat"],
+                        "lon": l["lon"]
+                    }
+                    for l in self.lotes[int(low) : int(high) + 1]
+                ],
                 # Detalles del segmento donde cayó la consulta
                 "segment": {
                     "segment_index": seg_info.get("segment_index"),

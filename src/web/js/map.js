@@ -599,8 +599,12 @@ async function ejecutarSimulacionPasoAPasoPGM(data, learnedStats, realRtreeTime)
     const intercept = learnedStats.segment ? learnedStats.segment.intercept : null;
     const searchRange = learnedStats.pgm_search_range || [0, 0];
     const binSteps = learnedStats.binary_steps || 0;
+    
+    const neighborhood = learnedStats.neighborhood || [];
+    const low = searchRange[0];
+    const high = searchRange[1];
 
-    // ── Crear eje 1D ─────────────────────────────────────────────────
+    // ── Crear eje 1D en la parte inferior ─────────────────────────────
     const axisEl = crearEjePGM(learnedStats);
     if (axisEl) {
         axisEl.style.opacity = "0";
@@ -610,89 +614,140 @@ async function ejecutarSimulacionPasoAPasoPGM(data, learnedStats, realRtreeTime)
     }
 
     // ==========================================================================
-    // PASO 1 — HK: punto de consulta en el mapa, eje aparece con la clave
+    // PASO 1 — HK: Punto de consulta y centrado general del mapa
     // ==========================================================================
-    map.flyTo([lat, lon], 14, { duration: 0.8 });
+    map.flyTo([lat, lon], 15, { duration: 0.8 });
 
     const qDot = L.circleMarker([lat, lon], {
-        radius: 6, color: "#fbbf24", fillColor: "#fbbf24", fillOpacity: 0.8, weight: 2, interactive: false
+        radius: 7, color: "#fbbf24", fillColor: "#fbbf24", fillOpacity: 0.9, weight: 2.5, interactive: false
     }).addTo(map);
-    qDot.bindTooltip(`consulta (${lat.toFixed(4)}, ${lon.toFixed(4)})`, { className: "pgm-tooltip", direction: "top", opacity: 0.8 });
+    qDot.bindTooltip(`consulta (${lat.toFixed(5)}, ${lon.toFixed(5)})`, { className: "pgm-tooltip", direction: "top", opacity: 0.85 });
     pgmVisualLayers.push(qDot);
 
-    // Línea de proyección del punto al eje (conceptual)
+    // Línea de proyección conceptual hacia la barra de Hilbert inferior
     const projLine = L.polyline(
-        [[lat, lon], [lat - 0.002, lon]],
-        { color: "rgba(251,191,36,0.3)", weight: 1, dashArray: "4,4", interactive: false }
+        [[lat, lon], [lat - 0.0015, lon]],
+        { color: "rgba(251,191,36,0.25)", weight: 1, dashArray: "4,4", interactive: false }
     ).addTo(map);
     pgmVisualLayers.push(projLine);
 
     // ==========================================================================
-    // PASO 2 — PGM: resaltar segmento en el eje, mostrar modelo
+    // PASO 2 — PGM: Mostrar el segmento activo y la Curva de Hilbert local real
     // ==========================================================================
     setTimeout(() => {
         actualizarEjePGM(learnedStats, 1);
 
-        // Flecha desde el punto de consulta al eje
-        projLine.setStyle({ color: "rgba(16,185,129,0.5)", weight: 1.5, dashArray: "2,4" });
+        projLine.setStyle({ color: "rgba(16,185,129,0.45)", weight: 1.5, dashArray: "2,3" });
 
-        // Glow pulsante en el segmento activo en el SVG
         const glow = document.getElementById("pgm-axis-glow");
         if (glow) {
             glow.style.transition = "opacity 0.3s ease";
-            glow.setAttribute("opacity", "0.8");
+            glow.setAttribute("opacity", "0.85");
         }
-    }, 2000);
+
+        // Trazar la Curva de Hilbert local uniendo los centroides del vecindario
+        if (neighborhood.length > 0) {
+            const latlngs = neighborhood.map(l => [l.lat, l.lon]);
+            const hilbertLine = L.polyline(latlngs, {
+                color: "#10b981",
+                weight: 2,
+                opacity: 0.65,
+                dashArray: "3,5",
+                interactive: false
+            }).addTo(map);
+            pgmVisualLayers.push(hilbertLine);
+
+            // Dibujar pequeños centroides del tramo catastral indexado en memoria
+            neighborhood.forEach((l, idx) => {
+                const isPred = (low + idx) === predPos;
+                const isReal = (low + idx) === actPos;
+                if (isPred || isReal) return; // Se renderizan con más énfasis en el paso 3
+
+                const dot = L.circleMarker([l.lat, l.lon], {
+                    radius: 3,
+                    color: "rgba(6,182,212,0.5)",
+                    fillColor: "rgba(6,182,212,0.5)",
+                    fillOpacity: 0.7,
+                    weight: 1,
+                    interactive: false
+                }).addTo(map);
+                pgmVisualLayers.push(dot);
+            });
+        }
+    }, 1500);
 
     // ==========================================================================
-    // PASO 3 — BS: marcadores ε, pred vs real en el eje, zoom al lote
+    // PASO 3 — BS: Mostrar rango de error ε, predicción, real y zoom final
     // ==========================================================================
     setTimeout(() => {
         actualizarEjePGM(learnedStats, 2);
 
-        // Círculo naranja de rango ε en el mapa
-        const rangeCircle = L.circleMarker([lat, lon], {
-            radius: 12, color: "#f59e0b", fillColor: "rgba(245,158,11,0.04)",
-            fillOpacity: 0.08, weight: 1.5, dashArray: "3,3", interactive: false
-        }).addTo(map);
-        pgmVisualLayers.push(rangeCircle);
-
-        // Marcadores predicción vs real (offset visual)
-        if (predPos !== null && actPos !== null) {
-            const off = 0.00012;
-            const predDot = L.circleMarker([lat + off, lon - off], {
-                radius: 4.5, color: "#06b6d4", fillColor: "#06b6d4", fillOpacity: 0.7, weight: 1.5, interactive: false
+        // Bounding Box del vecindario de búsqueda acotado física y lógicamente
+        if (neighborhood.length > 0) {
+            const latlngs = neighborhood.map(l => [l.lat, l.lon]);
+            const bounds = L.latLngBounds(latlngs);
+            
+            const rangeBox = L.rectangle(bounds, {
+                color: "#f59e0b",
+                weight: 1.2,
+                fillColor: "rgba(245,158,11,0.015)",
+                fillOpacity: 0.04,
+                dashArray: "4,4",
+                interactive: false
             }).addTo(map);
-            predDot.bindTooltip(`predicción → #${predPos}`, { className: "pgm-tooltip", direction: "bottom", opacity: 0.8 });
-            pgmVisualLayers.push(predDot);
+            pgmVisualLayers.push(rangeBox);
+            rangeBox.bindTooltip(`Rango de Búsqueda Local [${low} … ${high}] (2ε+1)`, { 
+                permanent: true, 
+                className: "pgm-tooltip-range", 
+                direction: "bottom", 
+                opacity: 0.8 
+            });
 
-            const actDot = L.circleMarker([lat - off, lon + off], {
-                radius: 4.5, color: "#10b981", fillColor: "#10b981", fillOpacity: 0.9, weight: 1.5, interactive: false
-            }).addTo(map);
-            actDot.bindTooltip(`real → #${actPos}`, { className: "pgm-tooltip", direction: "top", opacity: 0.8 });
-            pgmVisualLayers.push(actDot);
+            // Marcador de predicción (Cian)
+            if (predPos !== null && predPos >= low && predPos <= high) {
+                const pLote = neighborhood[predPos - low];
+                const predDot = L.circleMarker([pLote.lat, pLote.lon], {
+                    radius: 6, color: "#06b6d4", fillColor: "#06b6d4", fillOpacity: 0.8, weight: 2, interactive: false
+                }).addTo(map);
+                predDot.bindTooltip(`predicción → #${predPos}`, { className: "pgm-tooltip-pred", direction: "left", opacity: 0.9 });
+                pgmVisualLayers.push(predDot);
+            }
+
+            // Marcador real (Esmeralda)
+            if (actPos !== null && actPos >= low && actPos <= high) {
+                const aLote = neighborhood[actPos - low];
+                const actDot = L.circleMarker([aLote.lat, aLote.lon], {
+                    radius: 6, color: "#10b981", fillColor: "#10b981", fillOpacity: 0.8, weight: 2, interactive: false
+                }).addTo(map);
+                actDot.bindTooltip(`real → #${actPos}`, { className: "pgm-tooltip-real", direction: "right", opacity: 0.9 });
+                pgmVisualLayers.push(actDot);
+            }
         }
 
-        // Zoom final al lote
+        // Zoom cerrado al lote real
         map.flyTo([lat, lon], 18, { duration: 1.2 });
 
-        // Highlight del lote
+        // Highlight final del lote catastral encontrado
         setTimeout(() => {
             const foundDot = L.circleMarker([lat, lon], {
-                radius: 8, color: "#ef4444", fillColor: "#ef4444", fillOpacity: 0.3, weight: 2.5, interactive: false
+                radius: 9, color: "#ef4444", fillColor: "#ef4444", fillOpacity: 0.25, weight: 3, interactive: false
             }).addTo(map);
-            foundDot.bindTooltip(`lote encontrado · ${data.id_lote}`, { className: "pgm-tooltip", direction: "top", opacity: 0.85 });
+            foundDot.bindTooltip(`lote encontrado · ${data.id_lote} (${binSteps} iteraciones)`, { 
+                className: "pgm-tooltip-success", 
+                direction: "top", 
+                opacity: 0.9 
+            });
             pgmVisualLayers.push(foundDot);
         }, 400);
 
-        // HUD final
+        // Mostrar HUD de rendimiento comparativo en tiempo real
         const rtreeMs = realRtreeTime || learnedStats.rtree_search_time_ms;
         if (learnedStats.learned_search_time_ms && rtreeMs) {
             actualizarHudRendimientoLearned(learnedStats.learned_search_time_ms, rtreeMs);
         }
 
         if (diceBtn) diceBtn.disabled = false;
-    }, 5000);
+    }, 3800);
 }
 
 // ── Panel de Debug PGM-Index (HK → PGM → BS) ── eliminado — reemplazado por eje 1D arriba
