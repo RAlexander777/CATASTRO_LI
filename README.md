@@ -32,7 +32,9 @@ Las bases de datos espaciales tradicionales confían en la **Familia R-Tree** (i
 
 **Catastro LI** plantea un enfoque experimental alternativo:
 1. **Reducción de Dimensionalidad Fractal**: Proyectar los centroides bidimensionales $(X, Y)$ de las geometrías complejas sobre una curva unidimensional continua (**Curva de Hilbert 1D**), preservando la localidad espacial en memoria.
+   <p align="center"><img src="src/web/assets/figura1_hilbert.png" alt="Preservación de vecindad con Curva de Hilbert" width="450" /></p>
 2. **Índice Aprendido (PGM-Index)**: Entrenar un modelo geométrico por tramos (**Piecewise Geometric Model**) con los códigos lineales de Hilbert ordenados para aproximar y predecir la posición física de los registros en memoria con una cota de error máxima garantizada ($\epsilon$).
+   <p align="center"><img src="src/web/assets/figura5_cdf.png" alt="Segmentación y error acotado en el PGM-Index" width="450" /></p>
 
 El ecosistema incorpora un **Simulador Debug en Vivo** tanto en la Landing Page como en el Visor Cartográfico para visualizar este proceso cartográficamente y auditar el rendimiento estructural paso a paso.
 
@@ -211,8 +213,15 @@ Los resultados de las pruebas experimentales ejecutadas sobre el dataset catastr
 * **Tamaño en Disco de la Tabla (`tg_lote`)**: `79.70 MB`
 * **Tiempo de Entrenamiento del PGM-Index**: `5.64 segundos`
 
+<p align="center"><img src="src/web/assets/figura2_memoria.png" alt="Comparación de consumo de memoria RAM" width="520" /></p>
+
 ### ⚡ Tiempos de Búsqueda y Latencias (Test de 1,000 Consultas)
 * **Latencia Promedio R-Tree (PostGIS GiST)**: `0.6737 ms` (673.73 µs)
 * **Latencia Promedio Learned (PGM + Hilbert)**: `0.0196 ms` (**19.57 µs**)
 * **Factor de Aceleración Promedio (Speedup)**: **36.93$\times$ más rápido** en la resolución de consultas de geolocalización catastral.
 * **Pasos Promedio en la Búsqueda Binaria Local**: `2.27` accesos de clave en memoria RAM física.
+
+<p align="center">
+  <img src="src/web/assets/figura4_latencia.png" alt="Comparativa de Latencia de Consultas" width="370" style="margin-right: 15px;" />
+  <img src="src/web/assets/figura3_sensibilidad.png" alt="Análisis de Sensibilidad (Epsilon)" width="370" />
+</p>
