@@ -17,6 +17,7 @@ let currentStrokeColor = "#818cf8";
 let currentFillColor   = "#3730a3";
 let currentFillOpacity = 0.40;
 let ultimoLoteCentro = null;
+let renderLimit = 1500;
 
 
 // Estilos de Mapas Base definidos
@@ -292,6 +293,7 @@ async function cargarLotesPorViewport() {
     if (zoom < 15) {
         lotesLayer.clearLayers();
         limpiarVisualizacionRTree();
+        if (!isPGMMapDebugActive()) limpiarVisualizacionPGM();
         if (infoMsg) {
             infoMsg.innerHTML = '> acerca_mapa (Zoom >= 15) para cargar lotes';
         }
@@ -315,7 +317,7 @@ async function cargarLotesPorViewport() {
         const ne = bounds.getNorthEast();
         
         // Parámetros BBox geográficos y Zoom para simplificación en PostGIS
-        const url = `/api/lotes/?min_lat=${sw.lat}&min_lon=${sw.lng}&max_lat=${ne.lat}&max_lon=${ne.lng}&zoom=${zoom}`;
+        const url = `/api/lotes/?min_lat=${sw.lat}&min_lon=${sw.lng}&max_lat=${ne.lat}&max_lon=${ne.lng}&zoom=${zoom}&limit=${renderLimit}`;
         
         const response = await fetch(url, { signal });
         if (!response.ok) throw new Error('Error al consultar el servicio catastral');
@@ -389,6 +391,35 @@ function normalizarNombreCiudad(ciudad) {
     return s;
 }
 
+function sincronizarSelectorCiudad(ciudad) {
+    if (!ciudad) return;
+    const citySelector = document.getElementById("city-selector");
+    if (!citySelector) return;
+    const normalized = ciudad.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const matched = Array.from(citySelector.options).find(opt => {
+        const optVal = opt.value.toLowerCase();
+        return normalized.startsWith(optVal) || normalized.includes(optVal);
+    });
+    if (matched) {
+        citySelector.value = matched.value;
+    }
+}
+
+function encontrarCiudadMasCercana(lat, lon) {
+    if (isNaN(lat) || isNaN(lon)) return null;
+    let minDist = Infinity;
+    let closest = null;
+    for (const [key, coords] of Object.entries(CITY_COORDS)) {
+        const d = Math.hypot(coords[0] - lat, coords[1] - lon);
+        if (d < minDist) {
+            minDist = d;
+            closest = key;
+        }
+    }
+    return closest;
+}
+
 // Inicializar el visor enfocando la extensión general de datos o coordenadas de búsqueda
 async function inicializarVisor() {
     const infoMsg = document.getElementById("info-msg");
@@ -416,6 +447,10 @@ async function inicializarVisor() {
     
     // Si se especifican coordenadas en la URL, enfocar directamente
     if (!isNaN(urlLat) && !isNaN(urlLon)) {
+        if (!urlCiudad && citySelector) {
+            const nearest = encontrarCiudadMasCercana(urlLat, urlLon);
+            if (nearest) citySelector.value = nearest;
+        }
         map.setView([urlLat, urlLon], urlZoom);
         map.on('moveend', cargarLotesPorViewport);
         await cargarLotesPorViewport();
@@ -521,147 +556,305 @@ function limpiarVisualizacionRTree() {
     rTreeVisualLayers = [];
 }
 
-// ── Panel de Debug PGM-Index (HK → PGM → BS) ────────────────────────────
+// Capas para la visualización PGM-Index sobre el mapa
+let pgmVisualLayers = [];
 
-const PGM_DEBUG_STEPS = ["hk", "pgm", "bs"];
-const PGM_DEBUG_TITLES = {
-    0: "Hilbert 1D · Mapeo",
-    1: "PGM · Predicción",
-    2: "BS · Búsqueda Local"
-};
+function limpiarVisualizacionPGM() {
+    pgmVisualLayers.forEach(layer => {
+        if (layer._pgmAxis) return;
+        map.removeLayer(layer);
+    });
+    pgmVisualLayers = [];
+    limpiarEjePGM();
+}
 
-function isDebugPGMVisorActive() {
+function isPGMMapDebugActive() {
+    const cb = document.getElementById("pgm-debug-checkbox");
+    return !!(cb && cb.checked);
+}
+
+async function ejecutarSimulacionPasoAPasoPGM(data, learnedStats, realRtreeTime) {
+    if (!data.center || !learnedStats) {
+        const diceBtn = document.querySelector(".btn-dice");
+        if (diceBtn) diceBtn.disabled = false;
+        return;
+    }
+
+    const diceBtn = document.querySelector(".btn-dice");
+    if (diceBtn) diceBtn.disabled = true;
+
+    limpiarVisualizacionPGM();
+    limpiarVisualizacionRTree();
+    highlightLoteId = data.id_lote;
+
+    const lat = Number(data.center.lat);
+    const lon = Number(data.center.lon);
+    const segCount = learnedStats.segments_count || 8;
+    const segIdx = learnedStats.segment ? learnedStats.segment.segment_index : 0;
+    const eps = learnedStats.epsilon || 4;
+    const predPos = learnedStats.segment ? learnedStats.segment.predicted_position : null;
+    const actPos = learnedStats.segment ? learnedStats.segment.actual_position : null;
+    const hKey = learnedStats.hilbert_key;
+    const slope = learnedStats.segment ? learnedStats.segment.slope : null;
+    const intercept = learnedStats.segment ? learnedStats.segment.intercept : null;
+    const searchRange = learnedStats.pgm_search_range || [0, 0];
+    const binSteps = learnedStats.binary_steps || 0;
+
+    // ── Crear eje 1D ─────────────────────────────────────────────────
+    const axisEl = crearEjePGM(learnedStats);
+    if (axisEl) {
+        axisEl.style.opacity = "0";
+        document.getElementById("map").appendChild(axisEl);
+        pgmVisualLayers.push({ _pgmAxis: true });
+        requestAnimationFrame(() => { axisEl.style.opacity = "1"; });
+    }
+
+    // ==========================================================================
+    // PASO 1 — HK: punto de consulta en el mapa, eje aparece con la clave
+    // ==========================================================================
+    map.flyTo([lat, lon], 14, { duration: 0.8 });
+
+    const qDot = L.circleMarker([lat, lon], {
+        radius: 6, color: "#fbbf24", fillColor: "#fbbf24", fillOpacity: 0.8, weight: 2, interactive: false
+    }).addTo(map);
+    qDot.bindTooltip(`consulta (${lat.toFixed(4)}, ${lon.toFixed(4)})`, { className: "pgm-tooltip", direction: "top", opacity: 0.8 });
+    pgmVisualLayers.push(qDot);
+
+    // Línea de proyección del punto al eje (conceptual)
+    const projLine = L.polyline(
+        [[lat, lon], [lat - 0.002, lon]],
+        { color: "rgba(251,191,36,0.3)", weight: 1, dashArray: "4,4", interactive: false }
+    ).addTo(map);
+    pgmVisualLayers.push(projLine);
+
+    // ==========================================================================
+    // PASO 2 — PGM: resaltar segmento en el eje, mostrar modelo
+    // ==========================================================================
+    setTimeout(() => {
+        actualizarEjePGM(learnedStats, 1);
+
+        // Flecha desde el punto de consulta al eje
+        projLine.setStyle({ color: "rgba(16,185,129,0.5)", weight: 1.5, dashArray: "2,4" });
+
+        // Glow pulsante en el segmento activo en el SVG
+        const glow = document.getElementById("pgm-axis-glow");
+        if (glow) {
+            glow.style.transition = "opacity 0.3s ease";
+            glow.setAttribute("opacity", "0.8");
+        }
+    }, 2000);
+
+    // ==========================================================================
+    // PASO 3 — BS: marcadores ε, pred vs real en el eje, zoom al lote
+    // ==========================================================================
+    setTimeout(() => {
+        actualizarEjePGM(learnedStats, 2);
+
+        // Círculo naranja de rango ε en el mapa
+        const rangeCircle = L.circleMarker([lat, lon], {
+            radius: 12, color: "#f59e0b", fillColor: "rgba(245,158,11,0.04)",
+            fillOpacity: 0.08, weight: 1.5, dashArray: "3,3", interactive: false
+        }).addTo(map);
+        pgmVisualLayers.push(rangeCircle);
+
+        // Marcadores predicción vs real (offset visual)
+        if (predPos !== null && actPos !== null) {
+            const off = 0.00012;
+            const predDot = L.circleMarker([lat + off, lon - off], {
+                radius: 4.5, color: "#06b6d4", fillColor: "#06b6d4", fillOpacity: 0.7, weight: 1.5, interactive: false
+            }).addTo(map);
+            predDot.bindTooltip(`predicción → #${predPos}`, { className: "pgm-tooltip", direction: "bottom", opacity: 0.8 });
+            pgmVisualLayers.push(predDot);
+
+            const actDot = L.circleMarker([lat - off, lon + off], {
+                radius: 4.5, color: "#10b981", fillColor: "#10b981", fillOpacity: 0.9, weight: 1.5, interactive: false
+            }).addTo(map);
+            actDot.bindTooltip(`real → #${actPos}`, { className: "pgm-tooltip", direction: "top", opacity: 0.8 });
+            pgmVisualLayers.push(actDot);
+        }
+
+        // Zoom final al lote
+        map.flyTo([lat, lon], 18, { duration: 1.2 });
+
+        // Highlight del lote
+        setTimeout(() => {
+            const foundDot = L.circleMarker([lat, lon], {
+                radius: 8, color: "#ef4444", fillColor: "#ef4444", fillOpacity: 0.3, weight: 2.5, interactive: false
+            }).addTo(map);
+            foundDot.bindTooltip(`lote encontrado · ${data.id_lote}`, { className: "pgm-tooltip", direction: "top", opacity: 0.85 });
+            pgmVisualLayers.push(foundDot);
+        }, 400);
+
+        // HUD final
+        const rtreeMs = realRtreeTime || learnedStats.rtree_search_time_ms;
+        if (learnedStats.learned_search_time_ms && rtreeMs) {
+            actualizarHudRendimientoLearned(learnedStats.learned_search_time_ms, rtreeMs);
+        }
+
+        if (diceBtn) diceBtn.disabled = false;
+    }, 5000);
+}
+
+// ── Panel de Debug PGM-Index (HK → PGM → BS) ── eliminado — reemplazado por eje 1D arriba
+
+// ── PGM Index — Axis 1D ──────────────────────────────────────────────────
+
+function isRTreeDebugActive() {
     const cb = document.getElementById("debug-mode-checkbox");
     return !!(cb && cb.checked);
 }
 
-function toggleDebugPGMVisor() {
-    const panel = document.getElementById("pgm-debug-panel");
-    if (!panel) return;
-    panel.style.display = isDebugPGMVisorActive() ? "flex" : "none";
-    if (panel.style.display === "flex") {
-        limpiarDebugPGMVisor();
-    }
-}
+let pgmAxisControl = null;
 
-function limpiarDebugPGMVisor() {
-    // Resetear las 3 cards
-    PGM_DEBUG_STEPS.forEach((_, idx) => {
-        const card = document.getElementById(`pgm-debug-card-${idx}`);
-        if (card) {
-            card.classList.remove("pgm-debug-card-active", "pgm-debug-card-done");
-        }
-    });
-    // Resetear valores
-    setVal("pgm-debug-hk-val", "—");
-    setVal("pgm-debug-seg-val", "—");
-    setVal("pgm-debug-pts-val", "—");
-    setVal("pgm-debug-slope-val", "—");
-    setVal("pgm-debug-intercept-val", "—");
-    setVal("pgm-debug-range-val", "—");
-    setVal("pgm-debug-eps-val", "—");
-    setVal("pgm-debug-predreal-val", "—");
-    setVal("pgm-debug-acc-val", "—");
-    setVal("pgm-debug-bs-label", "[— , —]");
-    setVal("pgm-debug-bs-iter", "— iteraciones");
-    setVal("pgm-debug-seg-label", "— segmentos");
-    setVal("pgm-debug-subtitle", "Iniciando consulta…");
-    // Resetear animaciones SVG
-    const ring = document.getElementById("pgm-debug-hk-ring");
-    if (ring) ring.style.opacity = "0";
-}
+function crearEjePGM(stats) {
+    const old = document.getElementById("pgm-axis");
+    if (old) old.remove();
+    if (!stats) return null;
 
-function setVal(id, val) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = val;
-}
+    const segCount = stats.segments_count || 8;
+    const segIdx = stats.segment ? stats.segment.segment_index : 0;
+    const hKey = stats.hilbert_key || 0;
+    const maxKey = Math.pow(2, 24) - 1;
+    const hueStep = 360 / segCount;
 
-function fmtFloat(v, digits = 4) {
-    if (v === null || v === undefined) return "—";
-    return Number(v).toFixed(digits);
-}
+    const container = document.createElement("div");
+    container.id = "pgm-axis";
+    container.style.cssText =
+        "position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);" +
+        "z-index:700;width:min(700px,calc(100vw - 320px));" +
+        "background:rgba(9,13,22,0.88);backdrop-filter:blur(6px);" +
+        "border:1px solid rgba(52,211,153,0.2);padding:0.5rem 0.8rem 0.5rem;" +
+        "font-family:'Fira Code',monospace;transition:opacity 0.4s ease;";
 
-function fmtExp(v) {
-    if (v === null || v === undefined) return "—";
-    return Number(v).toExponential(2);
-}
+    // Título
+    const title = document.createElement("div");
+    title.style.cssText = "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.35rem;";
+    title.innerHTML = `<span style="color:#34d399;font-size:0.6rem;font-weight:700;">> hilbert_keyspace (0 … 2²⁴−1)</span>`;
+    container.appendChild(title);
 
-function activarStepDebugPGMVisor(step, subtitleText) {
-    if (!isDebugPGMVisorActive()) return;
-    // Marcar las cards anteriores como "done" y la actual como "active"
-    for (let i = 0; i <= step; i++) {
-        const card = document.getElementById(`pgm-debug-card-${i}`);
-        if (!card) continue;
-        card.classList.remove("pgm-debug-card-active", "pgm-debug-card-done");
-        if (i < step) {
-            card.classList.add("pgm-debug-card-done");
-        } else {
-            card.classList.add("pgm-debug-card-active");
-        }
-    }
-    if (subtitleText) {
-        setVal("pgm-debug-subtitle", `paso ${step} · ${PGM_DEBUG_TITLES[step]} · ${subtitleText}`);
-    }
-    // Animar el ring del paso 0 (HK)
-    if (step === 0) {
-        const ring = document.getElementById("pgm-debug-hk-ring");
-        if (ring) {
-            ring.style.opacity = "0.5";
-            ring.style.transition = "r 0.6s ease-out, opacity 0.6s ease-out";
-            ring.setAttribute("r", "16");
-            setTimeout(() => { if (ring) { ring.setAttribute("r", "8"); ring.style.opacity = "0"; } }, 700);
+    // Barra SVG
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", "32");
+    svg.setAttribute("viewBox", "0 0 1000 32");
+    svg.style.cssText = "display:block;width:100%;";
+    svg.setAttribute("preserveAspectRatio", "none");
+
+    // Segmentos
+    const segW = 980 / segCount;
+    for (let i = 0; i < segCount; i++) {
+        const hue = i * hueStep;
+        const isActive = i === segIdx;
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", String(10 + i * segW));
+        rect.setAttribute("y", "10");
+        rect.setAttribute("width", String(segW - 1));
+        rect.setAttribute("height", "12");
+        rect.setAttribute("fill", isActive ? `hsla(${hue},80%,55%,0.7)` : `hsla(${hue},50%,45%,0.25)`);
+        rect.setAttribute("stroke", isActive ? `hsla(${hue},90%,60%,0.9)` : `hsla(${hue},40%,40%,0.1)`);
+        rect.setAttribute("stroke-width", isActive ? "2" : "0.5");
+        rect.setAttribute("rx", "1");
+        svg.appendChild(rect);
+
+        if (isActive) {
+            // Destello sobre segmento activo
+            const glow = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            glow.setAttribute("x", String(10 + i * segW));
+            glow.setAttribute("y", "10");
+            glow.setAttribute("width", String(segW - 1));
+            glow.setAttribute("height", "12");
+            glow.setAttribute("fill", "none");
+            glow.setAttribute("stroke", "#10b981");
+            glow.setAttribute("stroke-width", "3");
+            glow.setAttribute("rx", "1");
+            glow.setAttribute("opacity", "0.5");
+            glow.id = "pgm-axis-glow";
+            svg.appendChild(glow);
         }
     }
+
+    // Eje numérico (línea base)
+    const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    axisLine.setAttribute("x1", "10");
+    axisLine.setAttribute("y1", "26");
+    axisLine.setAttribute("x2", "990");
+    axisLine.setAttribute("y2", "26");
+    axisLine.setAttribute("stroke", "rgba(52,211,153,0.2)");
+    axisLine.setAttribute("stroke-width", "0.5");
+    svg.appendChild(axisLine);
+
+    // Marcador de clave HK (triángulo invertido)
+    const hkFrac = hKey / maxKey;
+    const hkX = 10 + hkFrac * 980;
+    const hkArrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    hkArrow.setAttribute("points", `${hkX-5},8 ${hkX+5},8 ${hkX},14`);
+    hkArrow.setAttribute("fill", "#fbbf24");
+    hkArrow.setAttribute("opacity", "0.9");
+    hkArrow.id = "pgm-axis-hk-arrow";
+    svg.appendChild(hkArrow);
+
+    // Etiqueta HK
+    const hkLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    hkLabel.setAttribute("x", String(hkX));
+    hkLabel.setAttribute("y", "7");
+    hkLabel.setAttribute("fill", "#fbbf24");
+    hkLabel.setAttribute("font-size", "7");
+    hkLabel.setAttribute("font-family", "monospace");
+    hkLabel.setAttribute("text-anchor", "middle");
+    hkLabel.textContent = `HK=${hKey}`;
+    hkLabel.id = "pgm-axis-hk-label";
+    svg.appendChild(hkLabel);
+
+    // Separadores de segmento y etiquetas
+    for (let i = 0; i <= segCount; i++) {
+        const x = 10 + i * segW;
+        const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        tick.setAttribute("x1", String(x));
+        tick.setAttribute("y1", "24");
+        tick.setAttribute("x2", String(x));
+        tick.setAttribute("y2", "28");
+        tick.setAttribute("stroke", "rgba(52,211,153,0.15)");
+        tick.setAttribute("stroke-width", "0.5");
+        svg.appendChild(tick);
+    }
+
+    container.appendChild(svg);
+
+    // Footer con info del segmento activo
+    const footer = document.createElement("div");
+    footer.id = "pgm-axis-footer";
+    footer.style.cssText = "display:flex;justify-content:space-between;font-size:0.55rem;color:rgba(52,211,153,0.5);margin-top:0.2rem;";
+    footer.innerHTML = `<span>segmento <strong style="color:#34d399;">#${segIdx}</strong> de ${segCount}</span>`;
+    container.appendChild(footer);
+
+    return container;
 }
 
-function renderCardDebugPGMVisor(step, data) {
-    if (!isDebugPGMVisorActive()) return;
-    if (step === 0) {
-        // HK: solo tenemos la clave
-        if (data.hilbert_key !== undefined) {
-            setVal("pgm-debug-hk-val", String(data.hilbert_key));
-        }
-    } else if (step === 1) {
-        // PGM: segmento con slope, intercept, puntos
-        if (data.segment_index !== undefined) {
-            setVal("pgm-debug-seg-val", `#${data.segment_index}${data.segments_count ? `/${data.segments_count - 1}` : ""}`);
-            setVal("pgm-debug-seg-label", `seg #${data.segment_index} • ${data.segments_count || "?"} segs`);
-        }
-        if (data.points_count !== undefined) {
-            setVal("pgm-debug-pts-val", `${data.points_count} pts`);
-        }
-        if (data.slope !== null && data.slope !== undefined) {
-            setVal("pgm-debug-slope-val", fmtExp(data.slope));
-        }
-        if (data.intercept !== null && data.intercept !== undefined) {
-            setVal("pgm-debug-intercept-val", fmtFloat(data.intercept, 2));
-        }
-        if (data.slope !== null && data.slope !== undefined && data.intercept !== null && data.intercept !== undefined) {
-            setVal("pgm-debug-equation", `y = ${fmtExp(data.slope)}·x ${data.intercept >= 0 ? "+" : "−"} ${Math.abs(data.intercept).toFixed(2)}`);
-        }
+function actualizarEjePGM(stats, step) {
+    const footer = document.getElementById("pgm-axis-footer");
+    if (!footer || !stats) return;
+    const eps = stats.epsilon || 4;
+    const predPos = stats.segment ? stats.segment.predicted_position : null;
+    const actPos = stats.segment ? stats.segment.actual_position : null;
+    const binSteps = stats.binary_steps || 0;
+    const slope = stats.segment ? stats.segment.slope : null;
+    const intercept = stats.segment ? stats.segment.intercept : null;
+
+    if (step === 1) {
+        footer.innerHTML =
+            `segmento <strong style="color:#34d399;">#${stats.segment ? stats.segment.segment_index : 0}</strong>` +
+            (slope ? ` &middot; y = ${slope.toExponential(2)}·x ${intercept >= 0 ? "+" : "−"} ${Math.abs(intercept).toFixed(2)}` : "") +
+            ` &middot; ${stats.segment ? stats.segment.points_count : 0} puntos`;
     } else if (step === 2) {
-        // BS: rango, ε, iteraciones, pred vs real
-        if (data.pgm_search_range) {
-            const [lo, hi] = data.pgm_search_range;
-            setVal("pgm-debug-range-val", `[${lo}, ${hi}]`);
-            setVal("pgm-debug-bs-label", `[${lo}, ${hi}]`);
-        }
-        if (data.epsilon !== undefined) {
-            setVal("pgm-debug-eps-val", `±${data.epsilon}`);
-        }
-        if (data.binary_steps !== undefined) {
-            setVal("pgm-debug-bs-iter", `${data.binary_steps} iteraciones`);
-        }
-        if (data.predicted_position !== null && data.predicted_position !== undefined &&
-            data.actual_position !== null && data.actual_position !== undefined) {
-            setVal("pgm-debug-predreal-val", `${data.predicted_position} → ${data.actual_position}`);
-        } else if (data.predicted_position !== null && data.predicted_position !== undefined) {
-            setVal("pgm-debug-predreal-val", `${data.predicted_position}`);
-        }
-        if (data.learned_search_time_ms !== undefined) {
-            setVal("pgm-debug-acc-val", `${fmtFloat(data.learned_search_time_ms, 3)} ms`);
-        }
+        footer.innerHTML =
+            `ε=${eps} · búsqueda en [${predPos - eps}, ${predPos + eps}] · ${binSteps} iteraciones` +
+            (predPos !== null && actPos !== null ? ` · pred: ${predPos} → real: ${actPos}` : "");
     }
+}
+
+function limpiarEjePGM() {
+    const el = document.getElementById("pgm-axis");
+    if (el) el.remove();
 }
 
 function visualizarBusquedaRTree(loteCenter, loteGeom) {
@@ -783,42 +976,50 @@ async function cargarLoteAleatorioVisor() {
         const data = await response.json();
         
         if (data.center) {
-            mostrarLoteEnVisor(data);
-
-            // Fetch R-Tree + PGM stats en paralelo para mostrar métricas reales
-            Promise.allSettled([
-                fetch(`/api/search/rtree?lat=${data.center.lat}&lon=${data.center.lon}`),
-                fetch(`/api/search/learned?lat=${data.center.lat}&lon=${data.center.lon}`)
-            ]).then(async ([rtreeRes, learnedRes]) => {
-                let learnedMs = null;
-                let rtreeMs = null;
-                if (rtreeRes.status === 'fulfilled' && rtreeRes.value.ok) {
-                    const result = await rtreeRes.value.json();
-                    rtreeMs = result.stats.rtree_search_time_ms;
-                }
-                if (learnedRes.status === 'fulfilled' && learnedRes.value.ok) {
-                    const result = await learnedRes.value.json();
-                    learnedMs = result.stats.learned_search_time_ms;
-                }
-                if (learnedMs !== null && rtreeMs !== null) {
-                    actualizarHudRendimientoLearned(learnedMs, rtreeMs);
-                }
-            }).catch(() => {});
-
-            // Actualizar el selector de ciudad si la ciudad del lote existe en el select
-            if (data.ciudad) {
-                const citySelector = document.getElementById("city-selector");
-                if (citySelector) {
-                    const normalizedCity = data.ciudad.toLowerCase()
-                        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    const matchedOption = Array.from(citySelector.options).find(opt => {
-                        const optVal = opt.value.toLowerCase();
-                        return normalizedCity.startsWith(optVal) || normalizedCity.includes(optVal);
-                    });
-                    if (matchedOption) {
-                        citySelector.value = matchedOption.value;
+            if (isPGMMapDebugActive()) {
+                // PGM animado: primero obtener stats, luego ejecutar simulación
+                try {
+                    const [rtreeRes, learnedRes] = await Promise.allSettled([
+                        fetch(`/api/search/rtree?lat=${data.center.lat}&lon=${data.center.lon}`),
+                        fetch(`/api/search/learned?lat=${data.center.lat}&lon=${data.center.lon}`)
+                    ]);
+                    let learnedStats = null;
+                    let realRtreeTime = null;
+                    if (rtreeRes.status === 'fulfilled' && rtreeRes.value.ok) {
+                        const result = await rtreeRes.value.json();
+                        realRtreeTime = result.stats.rtree_search_time_ms;
                     }
+                    if (learnedRes.status === 'fulfilled' && learnedRes.value.ok) {
+                        const result = await learnedRes.value.json();
+                        learnedStats = result.stats;
+                    }
+                    await ejecutarSimulacionPasoAPasoPGM(data, learnedStats, realRtreeTime);
+                } catch (e) {
+                    console.error("Error en PGM debug:", e);
+                    mostrarLoteEnVisor(data);
                 }
+            } else {
+                mostrarLoteEnVisor(data);
+
+                // Fetch R-Tree + PGM stats en paralelo para mostrar métricas reales
+                Promise.allSettled([
+                    fetch(`/api/search/rtree?lat=${data.center.lat}&lon=${data.center.lon}`),
+                    fetch(`/api/search/learned?lat=${data.center.lat}&lon=${data.center.lon}`)
+                ]).then(async ([rtreeRes, learnedRes]) => {
+                    let learnedMs = null;
+                    let rtreeMs = null;
+                    if (rtreeRes.status === 'fulfilled' && rtreeRes.value.ok) {
+                        const result = await rtreeRes.value.json();
+                        rtreeMs = result.stats.rtree_search_time_ms;
+                    }
+                    if (learnedRes.status === 'fulfilled' && learnedRes.value.ok) {
+                        const result = await learnedRes.value.json();
+                        learnedMs = result.stats.learned_search_time_ms;
+                    }
+                    if (learnedMs !== null && rtreeMs !== null) {
+                        actualizarHudRendimientoLearned(learnedMs, rtreeMs);
+                    }
+                }).catch(() => {});
             }
         }
     } catch (err) {
@@ -875,26 +1076,50 @@ async function buscarLotePorIdVisor() {
         const data = await response.json();
         
         if (data.center) {
-            mostrarLoteEnVisor(data);
-
-            Promise.allSettled([
-                fetch(`/api/search/rtree?lat=${data.center.lat}&lon=${data.center.lon}`),
-                fetch(`/api/search/learned?lat=${data.center.lat}&lon=${data.center.lon}`)
-            ]).then(async ([rtreeRes, learnedRes]) => {
-                let learnedMs = null;
-                let rtreeMs = null;
-                if (rtreeRes.status === 'fulfilled' && rtreeRes.value.ok) {
-                    const result = await rtreeRes.value.json();
-                    rtreeMs = result.stats.rtree_search_time_ms;
+            if (isPGMMapDebugActive()) {
+                try {
+                    const [rtreeRes, learnedRes] = await Promise.allSettled([
+                        fetch(`/api/search/rtree?lat=${data.center.lat}&lon=${data.center.lon}`),
+                        fetch(`/api/search/learned?lat=${data.center.lat}&lon=${data.center.lon}`)
+                    ]);
+                    let learnedStats = null;
+                    let realRtreeTime = null;
+                    if (rtreeRes.status === 'fulfilled' && rtreeRes.value.ok) {
+                        const result = await rtreeRes.value.json();
+                        realRtreeTime = result.stats.rtree_search_time_ms;
+                    }
+                    if (learnedRes.status === 'fulfilled' && learnedRes.value.ok) {
+                        const result = await learnedRes.value.json();
+                        learnedStats = result.stats;
+                    }
+                    await ejecutarSimulacionPasoAPasoPGM(data, learnedStats, realRtreeTime);
+                } catch (e) {
+                    console.error("Error en PGM debug:", e);
+                    const d = document.querySelector(".btn-dice");
+                    if (d) d.disabled = false;
+                    mostrarLoteEnVisor(data);
                 }
-                if (learnedRes.status === 'fulfilled' && learnedRes.value.ok) {
-                    const result = await learnedRes.value.json();
-                    learnedMs = result.stats.learned_search_time_ms;
-                }
-                if (learnedMs !== null && rtreeMs !== null) {
-                    actualizarHudRendimientoLearned(learnedMs, rtreeMs);
-                }
-            }).catch(() => {});
+            } else {
+                mostrarLoteEnVisor(data);
+                Promise.allSettled([
+                    fetch(`/api/search/rtree?lat=${data.center.lat}&lon=${data.center.lon}`),
+                    fetch(`/api/search/learned?lat=${data.center.lat}&lon=${data.center.lon}`)
+                ]).then(async ([rtreeRes, learnedRes]) => {
+                    let learnedMs = null;
+                    let rtreeMs = null;
+                    if (rtreeRes.status === 'fulfilled' && rtreeRes.value.ok) {
+                        const result = await rtreeRes.value.json();
+                        rtreeMs = result.stats.rtree_search_time_ms;
+                    }
+                    if (learnedRes.status === 'fulfilled' && learnedRes.value.ok) {
+                        const result = await learnedRes.value.json();
+                        learnedMs = result.stats.learned_search_time_ms;
+                    }
+                    if (learnedMs !== null && rtreeMs !== null) {
+                        actualizarHudRendimientoLearned(learnedMs, rtreeMs);
+                    }
+                }).catch(() => {});
+            }
         }
     } catch (err) {
         console.error("Error en la búsqueda:", err);
@@ -926,12 +1151,14 @@ document.addEventListener("DOMContentLoaded", () => {
         citySelector.addEventListener("change", (e) => irACiudad(e.target.value));
     }
 
-    // — Switch debug: mostrar/ocultar panel de debug PGM-Index —
-    const debugToggleCb = document.getElementById("debug-mode-checkbox");
-    if (debugToggleCb) {
-        debugToggleCb.addEventListener("change", toggleDebugPGMVisor);
-        // Estado inicial (por si el switch queda marcado al recargar)
-        toggleDebugPGMVisor();
+    // — Switch PGM map debug: mostrar/ocultar visualización PGM sobre el mapa —
+    const pgmDebugCb = document.getElementById("pgm-debug-checkbox");
+    if (pgmDebugCb) {
+        pgmDebugCb.addEventListener("change", () => {
+            if (!pgmDebugCb.checked) {
+                limpiarVisualizacionPGM();
+            }
+        });
     }
 
     // — Botones de estilo de mapa base —
@@ -992,6 +1219,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 opacityLabel.style.color = ""; // Restaurar color inicial
                 opacityLabel.style.fontWeight = "";
                 opacityLabel.style.textShadow = "";
+            }
+        });
+    }
+
+    // — Slider de límite de renderizado —
+    const renderSlider = document.getElementById("render-limit-slider");
+    const renderLabel  = document.getElementById("render-limit-label");
+    if (renderSlider) {
+        renderSlider.addEventListener("input", (e) => {
+            renderLimit = parseInt(e.target.value);
+            if (renderLabel) renderLabel.textContent = renderLimit.toLocaleString();
+        });
+        renderSlider.addEventListener("change", () => {
+            const zoom = map.getZoom();
+            if (zoom >= 15) {
+                cargarLotesPorViewport();
             }
         });
     }
@@ -1090,6 +1333,7 @@ function mostrarLoteEnVisor(data) {
     if (data && data.center) {
         ultimoLoteCentro = data.center;
     }
+    sincronizarSelectorCiudad(data && data.ciudad);
     const debugCheckbox = document.getElementById("debug-mode-checkbox");
     const isDebugActive = debugCheckbox && debugCheckbox.checked;
 
@@ -1109,8 +1353,14 @@ function ejecutarSimulacionNormalVisor(data) {
 
     const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
     actualizarHudRendimiento(searchTime);
-    visualizarBusquedaRTree(data.center, data.geom);
-    animarTrazaRTree(data);
+
+    // R-Tree visual solo cuando debug está activo
+    if (isRTreeDebugActive()) {
+        visualizarBusquedaRTree(data.center, data.geom);
+        animarTrazaRTree(data);
+    } else {
+        limpiarVisualizacionRTree();
+    }
 }
 
 function ejecutarSimulacionPasoAPasoVisor(data) {
@@ -1176,10 +1426,6 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
     if (n1Meta) n1Meta.textContent = "sector_cluster";
     if (n2Meta) n2Meta.textContent = "lote_id";
 
-    // Resetear panel de debug PGM (HK → PGM → BS)
-    limpiarDebugPGMVisor();
-    activarStepDebugPGMVisor(0, "evaluando...");
-
     // Zoom out inicial a escala macro
     map.flyTo([lat, lon], 15, { duration: 0.8 });
 
@@ -1203,10 +1449,6 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
 
         if (elements.n0) elements.n0.classList.add("active-n0");
         if (n0Meta) n0Meta.textContent = "evaluando...";
-
-        // PGM paso 0: HK
-        const hk = learnedStats ? learnedStats.hilbert_key : null;
-        activarStepDebugPGMVisor(0, hk !== null && hk !== undefined ? `hk=${hk}` : "evaluando...");
     }, 900);
 
     // Paso 2: Nodo Interno N1 (Manzana)
@@ -1235,24 +1477,6 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
         if (elements.n1) elements.n1.classList.add("active-n1");
         if (n0Meta) n0Meta.textContent = data.ciudad ? data.ciudad.split("(")[0].trim() : "Puno";
         if (n1Meta) n1Meta.textContent = "evaluando...";
-
-        // PGM paso 1: Predicción
-        const seg = learnedStats && learnedStats.segment;
-        if (seg) {
-            activarStepDebugPGMVisor(1, `seg #${seg.segment_index} • ${seg.points_count} pts`);
-            // Actualizar la card PGM con la ecuación del segmento
-            renderCardDebugPGMVisor(1, {
-                segment_index: seg.segment_index,
-                points_count: seg.points_count,
-                slope: seg.slope,
-                intercept: seg.intercept,
-                predicted_position: seg.predicted_position,
-                segments_count: learnedStats.segments_count,
-                epsilon: learnedStats.epsilon
-            });
-        } else {
-            activarStepDebugPGMVisor(1, "modelo_lineal");
-        }
     }, 2100);
 
     // Paso 3: Lote N2
@@ -1282,22 +1506,6 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
             n1Meta.textContent = `bbox ${side.toFixed(0)}x${side.toFixed(0)}m`;
         }
         if (n2Meta) n2Meta.textContent = `id ${data.id_lote.substring(10)}`;
-
-        // PGM paso 2: Búsqueda local
-        if (learnedStats) {
-            const r = learnedStats.pgm_search_range;
-            activarStepDebugPGMVisor(2, `ε=${learnedStats.epsilon} • [${r[0]},${r[1]}] • ${learnedStats.binary_steps} iter`);
-            renderCardDebugPGMVisor(2, {
-                pgm_search_range: r,
-                epsilon: learnedStats.epsilon,
-                binary_steps: learnedStats.binary_steps,
-                predicted_position: learnedStats.segment ? learnedStats.segment.predicted_position : null,
-                actual_position: learnedStats.segment ? learnedStats.segment.actual_position : null,
-                learned_search_time_ms: learnedStats.learned_search_time_ms
-            });
-        } else {
-            activarStepDebugPGMVisor(2, "rango_ε");
-        }
 
         // HUD dual
         if (learnedStats) {
@@ -1338,10 +1546,6 @@ async function buscarLoteUnificadoVisor(lat, lon) {
     }
 
     // Resetear el panel de debug PGM-Index antes de iniciar la consulta
-    if (isDebugPGMVisorActive()) {
-        limpiarDebugPGMVisor();
-    }
-
     const hudContainer = document.getElementById("r-tree-performance-hud");
     if (hudContainer) hudContainer.classList.add("hud-flash");
 
@@ -1388,7 +1592,11 @@ async function buscarLoteUnificadoVisor(lat, lon) {
         ultimoLoteCentro = lote.center;
 
         const realRtreeTime = rtreeStats ? rtreeStats.rtree_search_time_ms : null;
-        mostrarLoteEnVisor(lote);
+        if (isPGMMapDebugActive() && learnedStats && lote.center) {
+            await ejecutarSimulacionPasoAPasoPGM(lote, learnedStats, realRtreeTime);
+        } else {
+            mostrarLoteEnVisor(lote);
+        }
         abrirLoteModal(lote.id_lote, learnedStats, realRtreeTime);
 
         // Actualizar HUD con ambos tiempos

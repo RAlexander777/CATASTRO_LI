@@ -65,6 +65,7 @@ def obtener_capa_lotes(
     max_lat: float = None,
     max_lon: float = None,
     zoom: int = None,
+    limit: int = 1500,
     db: Session = Depends(get_db)
 ):
     """
@@ -121,9 +122,10 @@ def obtener_capa_lotes(
             FROM tg_lote
             WHERE objcad_lote_gemo IS NOT NULL
             {bbox_filter}
-            LIMIT 1500  -- Límite de renderizado máximo por viewport
+            LIMIT :limit
         ) AS t;
     """)
+    params["limit"] = min(max(limit, 1), 5000)
     
     result = db.execute(query, params).scalar()
     

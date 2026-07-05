@@ -102,6 +102,7 @@ async function monitorearEstado() {
 
 // Estado de animación del randomizador/dado
 let isRandomizing = false;
+let isFirstLoad = true;
 
 // Inicializa el fondo animado tipo mapa digital/catastral vectorizado
 function inicializarMapaFondo() {
@@ -324,62 +325,102 @@ function inicializarMapaFondo() {
     draw();
 }
 
-// Genera un bucle visual rápido simulando un escaneo en base de datos
-function animarScanner(realDataCallback) {
+// Animación de carga con morphing interpolado via rAF
+let morphRaf = null;
+let morphStartTime = 0;
+let morphFrom = [];
+let morphTo = [];
+let morphFromIndex = 0;
+let morphToIndex = 0;
+const MORPH_DURATION = 150;
+const MORPH_SHAPES = [
+    [30,50, 210,50, 210,80, 210,160, 210,210, 30,210, 30,160, 30,80],
+    [95,10, 145,10, 145,60, 145,170, 145,230, 95,230, 95,170, 95,60],
+    [30,10, 180,10, 180,130, 210,130, 210,230, 30,230, 30,180, 30,70],
+    [80,10, 160,10, 160,70, 140,70, 140,230, 100,230, 100,70, 80,70],
+    [30,10, 210,10, 210,230, 170,230, 170,70, 130,70, 130,230, 30,230],
+    [30,10, 210,10, 210,100, 170,100, 170,230, 30,230, 30,180, 30,60],
+    [73,10, 123,10, 137,70, 152,140, 167,230, 117,230, 102,160, 88,85],
+    [34,40, 174,40, 185,80, 196,120, 206,170, 66,170, 55,130, 45,85],
+    [117,10, 167,10, 153,70, 138,140, 123,230, 73,230, 88,160, 102,85],
+    [44,10, 194,10, 227,230, 77,230, 62,130, 32,130, 24,80, 54,80],
+    [60,10, 210,10, 210,230, 60,230, 60,170, 30,170, 30,220, 60,220],
+    [64,10, 144,10, 153,70, 133,70, 157,230, 117,230, 93,70, 73,70],
+    [17,10, 117,10, 123,60, 163,60, 157,10, 197,10, 223,230, 43,230],
+    [30,10, 210,10, 210,230, 170,230, 170,180, 130,180, 130,230, 30,230],
+    [33,30, 173,30, 184,80, 195,140, 207,200, 67,200, 56,150, 45,90],
+    [30,10, 160,10, 160,110, 210,110, 210,150, 160,150, 160,230, 30,230],
+    [19,10, 169,10, 178,100, 218,100, 231,230, 41,230, 40,220, 23,50],
+    [60,10, 210,10, 210,230, 20,230, 20,100, 60,100, 60,90, 60,30],
+    [100,10, 210,10, 210,230, 100,230, 100,170, 60,170, 60,100, 100,100],
+    [45,10, 195,10, 195,100, 145,100, 145,230, 95,230, 95,100, 45,100],
+    [30,10, 180,10, 180,80, 220,80, 220,160, 180,160, 180,230, 30,230],
+    [60,10, 210,10, 210,230, 60,230, 60,160, 20,160, 20,80, 60,80],
+    [30,10, 180,10, 180,60, 200,60, 200,230, 30,230, 30,200, 30,60],
+    [40,10, 80,10, 80,100, 180,100, 180,10, 220,10, 220,230, 40,230]
+];
+
+function morphPoints(t) {
+    const out = [];
+    for (let i = 0; i < morphFrom.length; i += 2) {
+        const x = morphFrom[i] + (morphTo[i] - morphFrom[i]) * t;
+        const y = morphFrom[i + 1] + (morphTo[i + 1] - morphFrom[i + 1]) * t;
+        out.push(x.toFixed(1) + "," + y.toFixed(1));
+    }
+    return out.join(" ");
+}
+
+function morphLoop(time) {
+    const el = document.getElementById("lote-loading-polygon");
+    if (!el) { morphRaf = null; return; }
+    const elapsed = time - morphStartTime;
+    const t = Math.min(elapsed / MORPH_DURATION, 1);
+    el.setAttribute("points", morphPoints(t));
+    if (t >= 1) {
+        morphFrom = morphTo.slice();
+        morphFromIndex = morphToIndex;
+        let next;
+        do {
+            next = Math.floor(Math.random() * MORPH_SHAPES.length);
+        } while (next === morphFromIndex);
+        morphToIndex = next;
+        morphTo = MORPH_SHAPES[next];
+        morphStartTime = time;
+    }
+    morphRaf = requestAnimationFrame(morphLoop);
+}
+
+function iniciarAnimacionCarga() {
+    const glowWrap = document.getElementById("lote-glow-wrap");
+    if (glowWrap) glowWrap.classList.remove("glitch-active");
     const placeholder = document.getElementById("lote-preview-placeholder");
     if (placeholder) {
-        placeholder.textContent = "";
-        placeholder.classList.remove("error-active");
+        placeholder.classList.remove("error-active", "cold-flush-active");
     }
+    const container = document.querySelector(".preview-container");
+    if (container) container.classList.add("loading");
     
-    const glowWrap = document.getElementById("lote-glow-wrap");
-    if (glowWrap) {
-        glowWrap.classList.remove("glitch-active");
+    const loadingPolygon = document.getElementById("lote-loading-polygon");
+    if (!loadingPolygon) return;
+    
+    morphFrom = MORPH_SHAPES[0];
+    morphTo = MORPH_SHAPES[1 % MORPH_SHAPES.length];
+    morphFromIndex = 0;
+    morphToIndex = 1 % MORPH_SHAPES.length;
+    loadingPolygon.setAttribute("points", morphPoints(0));
+    
+    if (morphRaf) cancelAnimationFrame(morphRaf);
+    morphStartTime = performance.now();
+    morphRaf = requestAnimationFrame(morphLoop);
+}
+
+function detenerAnimacionCarga() {
+    if (morphRaf) {
+        cancelAnimationFrame(morphRaf);
+        morphRaf = null;
     }
-    
-    const elements = {
-        id: document.getElementById("pres-id"),
-        ciudad: document.getElementById("pres-ciudad"),
-        area: document.getElementById("pres-area"),
-        peri: document.getElementById("pres-peri"),
-        coords: document.getElementById("pres-coords"),
-        time: document.getElementById("pres-time")
-    };
-    
-    const interval = setInterval(() => {
-        const mockCoords = [];
-        const ptsCount = 4 + Math.floor(Math.random() * 2);
-        const padding = 40;
-        const spread = 160;
-        
-        for (let i = 0; i < ptsCount; i++) {
-            mockCoords.push([
-                padding + Math.random() * spread,
-                padding + Math.random() * spread
-            ]);
-        }
-        mockCoords.push(mockCoords[0]);
-        
-        const mockGeom = {
-            type: "Polygon",
-            coordinates: [mockCoords]
-        };
-        renderizarLoteSVG(mockGeom);
-        
-        const cities = ["Lima", "Arequipa", "Cusco", "Puno", "Juliaca", "Trujillo", "Chiclayo", "Piura", "Huancayo", "Iquitos"];
-        if (elements.id) elements.id.textContent = `21010101${Math.floor(Math.random() * 900000) + 100000}`;
-        if (elements.ciudad) elements.ciudad.textContent = cities[Math.floor(Math.random() * cities.length)];
-        if (elements.area) elements.area.textContent = `${(Math.random() * 150 + 50).toFixed(2)} m²`;
-        if (elements.peri) elements.peri.textContent = `${(Math.random() * 60 + 20).toFixed(2)} m`;
-        if (elements.coords) elements.coords.textContent = `${(-15 - Math.random() * 2).toFixed(4)}, ${(-70 - Math.random() * 2).toFixed(4)}`;
-        if (elements.time) elements.time.textContent = `${(Math.random() * 10 + 20).toFixed(3)} ms`;
-        
-    }, 50);
-    
-    return () => {
-        clearInterval(interval);
-        realDataCallback();
-    };
+    const container = document.querySelector(".preview-container");
+    if (container) container.classList.remove("loading");
 }
 
 async function coldCacheFlush() {
@@ -423,7 +464,7 @@ async function cargarLoteAleatorio() {
     if (isRandomizing) return;
     isRandomizing = true;
 
-    const diceBtn = document.querySelector(".btn-dice");
+    const diceBtn = document.querySelector(".btn-dice") || document.getElementById("hero-dice-btn");
     if (diceBtn) diceBtn.disabled = true;
 
     // Limpiar estado de error/glitch de cualquier intento previo
@@ -470,7 +511,14 @@ async function cargarLoteAleatorio() {
             fetchResolved = true;
         });
         
-    const stopScanner = animarScanner(async () => {
+    iniciarAnimacionCarga();
+    
+    setTimeout(async () => {
+        while (!fetchResolved) {
+            await new Promise(r => setTimeout(r, 40));
+        }
+        detenerAnimacionCarga();
+        
         if (errorOccurred) {
             console.error("Error al cargar lote aleatorio:", errorOccurred);
             const placeholder = document.getElementById("lote-preview-placeholder");
@@ -501,13 +549,6 @@ async function cargarLoteAleatorio() {
             isRandomizing = false;
             if (diceBtn) diceBtn.disabled = false;
         }
-    });
-    
-    setTimeout(async () => {
-        while (!fetchResolved) {
-            await new Promise(r => setTimeout(r, 40));
-        }
-        stopScanner();
     }, 700);
 }
 
@@ -580,7 +621,14 @@ async function buscarLotePorId() {
             fetchResolved = true;
         });
         
-    const stopScanner = animarScanner(async () => {
+    iniciarAnimacionCarga();
+    
+    setTimeout(async () => {
+        while (!fetchResolved) {
+            await new Promise(r => setTimeout(r, 40));
+        }
+        detenerAnimacionCarga();
+        
         if (errorOccurred) {
             const placeholder = document.getElementById("lote-preview-placeholder");
             if (placeholder) {
@@ -591,7 +639,7 @@ async function buscarLotePorId() {
             if (glowWrap) {
                 glowWrap.classList.add("glitch-active");
             }
-            document.getElementById("pres-id").textContent = "-";
+            document.getElementById("pres-id-top").textContent = "-";
             document.getElementById("pres-ciudad").textContent = "-";
             document.getElementById("pres-area").textContent = "-";
             document.getElementById("pres-peri").textContent = "-";
@@ -623,13 +671,6 @@ async function buscarLotePorId() {
             isRandomizing = false;
             if (searchTrigger) searchTrigger.disabled = false;
         }
-    });
-    
-    setTimeout(async () => {
-        while (!fetchResolved) {
-            await new Promise(r => setTimeout(r, 40));
-        }
-        stopScanner();
     }, 700);
 }
 
@@ -642,23 +683,20 @@ function actualizarLotePresentador(data, learnedStats, rtreeSearchTimeMs) {
     
     const previewContainer = document.querySelector(".preview-container");
     const debugContainer = document.getElementById("debug-steps-container");
-    const metadataPanel = document.getElementById("metadata-details-panel");
+
+    // Resetear animación de métricas: mostrar ID arriba e info abajo
+    const idTop = document.getElementById("pres-id-top");
+    const infoBottom = document.getElementById("pres-info-bottom");
+    if (idTop) idTop.classList.remove("oculto");
+    if (infoBottom) infoBottom.classList.remove("oculto");
 
     if (isDebugActive) {
-        if (metadataPanel) {
-            metadataPanel.classList.remove("collapsed");
-        }
-        
         if (previewContainer) previewContainer.style.display = "none";
         if (debugContainer) {
             debugContainer.classList.add("active");
         }
         ejecutarSimulacionPasoAPaso(data, rtreeSearchTimeMs);
     } else {
-        if (metadataPanel) {
-            metadataPanel.classList.remove("collapsed");
-        }
-        
         if (debugContainer) {
             debugContainer.classList.remove("active");
             debugContainer.innerHTML = "";
@@ -678,7 +716,8 @@ function actualizarLotePresentadorNormal(data, learnedStats, rtreeSearchTimeMs) 
         glowWrap.classList.remove("glitch-active");
     }
 
-    document.getElementById("pres-id").textContent = data.id_lote;
+    const idTop = document.getElementById("pres-id-top");
+    if (idTop) idTop.textContent = data.id_lote;
     document.getElementById("pres-ciudad").textContent = data.ciudad || "Sector Sintético";
     document.getElementById("pres-area").textContent = data.area_grafica ? Number(data.area_grafica).toFixed(2) + " m²" : "N/D";
     document.getElementById("pres-peri").textContent = data.peri_grafico ? Number(data.peri_grafico).toFixed(2) + " m" : "N/D";
@@ -950,35 +989,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (svg) {
-        // Al hacer clic en el lote protagonista, plegar/desplegar metadatos
         svg.addEventListener("click", () => {
-            const debugCheckbox = document.getElementById("debug-mode-checkbox");
-            const isDebugActive = debugCheckbox && debugCheckbox.checked;
-            if (isDebugActive) return;
-            
-            const metadataPanel = document.getElementById("metadata-details-panel");
-            if (metadataPanel) {
-                metadataPanel.classList.toggle("collapsed");
-            }
+            document.getElementById("pres-id-top")?.classList.toggle("oculto");
+            document.getElementById("pres-info-bottom")?.classList.toggle("oculto");
         });
     }
 
-    // Vincular controles de búsqueda expandibles minimalistas
-    const searchTrigger = document.getElementById("btn-buscar-trigger");
-    const searchContainer = document.querySelector(".search-container-minimal");
+    // Panel desplegable: Enter en el input de búsqueda
     const searchInput = document.getElementById("search-lote-input");
-    
-    if (searchTrigger && searchContainer && searchInput) {
-        searchTrigger.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (!searchContainer.classList.contains("expanded")) {
-                searchContainer.classList.add("expanded");
-                searchInput.focus();
-            } else {
-                buscarLotePorId();
-            }
-        });
-        
+    if (searchInput) {
         searchInput.addEventListener("keypress", (e) => {
             if (e.key === "Enter") {
                 const debugCheckbox = document.getElementById("debug-mode-checkbox");
@@ -999,31 +1018,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
             }
         });
-        
-        document.addEventListener("click", (e) => {
-            if (!searchContainer.contains(e.target) && searchContainer.classList.contains("expanded") && searchInput.value === "") {
-                searchContainer.classList.remove("expanded");
-            }
-        });
     }
 
-    // Manejo de Pestañas del Dashboard
-    const tabButtons = document.querySelectorAll(".dashboard-tabs .tab-btn");
-    const tabPanes = document.querySelectorAll(".dashboard-tabs-container .tab-pane");
-    
-    tabButtons.forEach(btn => {
-        btn.addEventListener("click", () => {
-            tabButtons.forEach(b => b.classList.remove("active"));
-            tabPanes.forEach(p => p.classList.remove("active"));
-            
-            btn.classList.add("active");
-            const targetId = btn.getAttribute("data-tab");
-            const targetPane = document.getElementById(targetId);
-            if (targetPane) {
-                targetPane.classList.add("active");
-            }
-        });
-    });
+
 
     // Función de contador progresivo (Odometer Effect)
     function animarContador(elemento, valorFinal, duracion = 1400) {
@@ -1121,6 +1118,45 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (dbCountEl) dbCountEl.textContent = "No disponible";
     }
 });
+
+// — BÚSQUEDA INLINE EN EL HERO —
+function toggleHeroSearch() {
+    const input = document.getElementById("search-lote-input");
+    if (!input) return;
+    const isOpen = input.classList.contains("expanded");
+    if (isOpen) {
+        buscarLotePorId();
+    } else {
+        input.classList.add("expanded");
+        setTimeout(() => input.focus(), 100);
+    }
+}
+document.addEventListener("click", (e) => {
+    const wrap = document.querySelector(".hero-search-wrap");
+    const input = document.getElementById("search-lote-input");
+    if (input && input.classList.contains("expanded") &&
+        wrap && !wrap.contains(e.target) && input.value === "") {
+        input.classList.remove("expanded");
+    }
+});
+window.toggleHeroSearch = toggleHeroSearch;
+
+// — MODALS: Investigación y Rendimiento —
+function toggleResearchModal(show) {
+    const modal = document.getElementById("research-modal");
+    if (modal) modal.style.display = show ? "flex" : "none";
+}
+function toggleMetricsModal(show) {
+    const modal = document.getElementById("metrics-modal");
+    if (modal) modal.style.display = show ? "flex" : "none";
+}
+// Cerrar modales con clic en el fondo
+document.addEventListener("click", (e) => {
+    if (e.target.id === "research-modal") toggleResearchModal(false);
+    if (e.target.id === "metrics-modal") toggleMetricsModal(false);
+});
+window.toggleResearchModal = toggleResearchModal;
+window.toggleMetricsModal = toggleMetricsModal;
 
 // — GLOBAL DRAWER WIKI CONTROL —
 function toggleWikiDrawer(show) {
@@ -1408,11 +1444,11 @@ function crearMiniCardSVGPGM(pasoIndex, data, stats) {
 }
 
 function ejecutarSimulacionPasoAPaso(data, rtreeSearchTimeMs) {
-    const diceBtn = document.querySelector(".btn-dice");
+    const diceBtn = document.querySelector(".btn-dice") || document.getElementById("hero-dice-btn");
     if (diceBtn) diceBtn.disabled = true;
     
     const setId = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    setId("pres-id", "...");
+    setId("pres-id-top", "...");
     setId("pres-ciudad", "...");
     setId("pres-area", "...");
     setId("pres-peri", "...");
@@ -1617,8 +1653,6 @@ async function buscarLoteUnificado(lat, lon) {
     isRandomizing = true;
 
     const metadataPanel = document.getElementById("metadata-details-panel");
-    if (metadataPanel) metadataPanel.classList.remove("collapsed");
-
     const previewContainer = document.querySelector(".preview-container");
     const debugContainer = document.getElementById("debug-steps-container");
 
