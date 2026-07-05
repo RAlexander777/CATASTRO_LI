@@ -426,6 +426,14 @@ async function cargarLoteAleatorio() {
     const diceBtn = document.querySelector(".btn-dice");
     if (diceBtn) diceBtn.disabled = true;
 
+    // Limpiar estado de error/glitch de cualquier intento previo
+    const glowWrap = document.getElementById("lote-glow-wrap");
+    if (glowWrap) glowWrap.classList.remove("glitch-active");
+    const placeholderEarly = document.getElementById("lote-preview-placeholder");
+    if (placeholderEarly) {
+        placeholderEarly.classList.remove("error-active", "cold-flush-active");
+    }
+
     const debugCheckbox = document.getElementById("debug-mode-checkbox");
     const isDebugActive = debugCheckbox && debugCheckbox.checked;
     if (!isDebugActive) {
@@ -509,6 +517,14 @@ async function buscarLotePorId() {
 
     const searchTrigger = document.getElementById("btn-buscar-trigger");
     if (searchTrigger) searchTrigger.disabled = true;
+
+    // Limpiar estado de error/glitch de cualquier intento previo
+    const glowWrap = document.getElementById("lote-glow-wrap");
+    if (glowWrap) glowWrap.classList.remove("glitch-active");
+    const placeholderEarly = document.getElementById("lote-preview-placeholder");
+    if (placeholderEarly) {
+        placeholderEarly.classList.remove("error-active", "cold-flush-active");
+    }
 
     const idInput = document.getElementById("search-lote-input").value.trim();
     if (!idInput || idInput.length !== 14) {

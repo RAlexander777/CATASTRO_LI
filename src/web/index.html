@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.33">
+    <link rel="stylesheet" href="css/styles.css?v=2.37">
 </head>
 
 <body>
@@ -122,7 +122,7 @@
         <label class="cyber-toggle" style="user-select: none;">
             <input type="checkbox" id="cold-cache-checkbox">
             <span class="cyber-toggle-slider" style="background: rgba(245, 158, 11, 0.15);"></span>
-            <span class="cyber-toggle-label" style="color: #f59e0b;">caché_frío</span>
+            <span class="cyber-toggle-label" style="color: #f59e0b;">limpiar_cache_db</span>
         </label>
     </div>
 
@@ -525,8 +525,8 @@
                 </h2>
                 <span class="benchmark-subtitle">// r-tree (gist) vs learned index (pgm) · n queries aleatorias</span>
                 <p class="benchmark-warning">
-                    ⚠ para resultados académicos limpios (cold-cache real), marca
-                    <strong>caché frío entre cada consulta</strong> en la configuración.
+                    ⚠ para resultados académicos limpios (sin caché en RAM), marca
+                    <strong>limpiar caché DB entre cada consulta</strong> en la configuración.
                     Eso reinicia el contenedor PostgreSQL antes de cada query, garantizando
                     que ambos motores parten de un caché 100% vacío.
                 </p>
@@ -541,7 +541,7 @@
                 <div class="benchmark-field benchmark-field--checkbox">
                     <label>
                         <input type="checkbox" id="benchmark-cold">
-                        <span>caché frío entre cada consulta <span class="benchmark-hint">(reinicio de PG · ~7s × N)</span></span>
+                        <span>limpiar caché DB entre cada consulta <span class="benchmark-hint">(reinicio de PG · ~7s × N)</span></span>
                     </label>
                 </div>
                 <div class="benchmark-field benchmark-field--checkbox">
@@ -652,8 +652,40 @@
         </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════════════
+         FOOTER: CRÉDITOS Y LICENCIA
+         ═══════════════════════════════════════════════════════════════════ -->
+    <footer class="credits-footer">
+        <div class="credits-inner">
+            <span class="credits-line">
+                <span class="credits-prompt">$</span> catastro_li — <strong>Rodrigo Alexander Becerra Lucano</strong>
+            </span>
+            <div class="credits-links">
+                <a href="https://www.linkedin.com/in/rodrigo-alexander-becerra-lucano-268a8121a/"
+                   target="_blank" rel="noopener noreferrer"
+                   class="credits-link" title="LinkedIn / Rodrigo Becerra">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+                        <rect x="2" y="9" width="4" height="12"/>
+                        <circle cx="4" cy="4" r="2"/>
+                    </svg>
+                    <span class="credits-link-text">linkedin</span>
+                </a>
+                <a href="https://github.com/RAlexander777/CATASTRO_LI/tree/main"
+                   target="_blank" rel="noopener noreferrer"
+                   class="credits-link" title="GitHub / CATASTRO_LI">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+                    </svg>
+                    <span class="credits-link-text">github</span>
+                </a>
+                <span class="credits-license">licencia MIT © 2026</span>
+            </div>
+        </div>
+    </footer>
+
     <!-- Cargar app.js con buster de caché actualizado -->
-    <script src="js/app.js?v=2.48"></script>
+    <script src="js/app.js?v=2.51"></script>
 </body>
 
 </html>

@@ -225,3 +225,31 @@ Los resultados de las pruebas experimentales ejecutadas sobre el dataset catastr
   <img src="src/web/assets/figura4_latencia.png" alt="Comparativa de Latencia de Consultas" width="370" style="margin-right: 15px;" />
   <img src="src/web/assets/figura3_sensibilidad.png" alt="Análisis de Sensibilidad (Epsilon)" width="370" />
 </p>
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+
+## 🤝 Autor y Contacto
+
+**Rodrigo Alexander Becerra Lucano**  
+Doctorando en Ciencia de la Computación — Universidad Nacional del Altiplano (Puno, Perú)
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rodrigo-alexander-becerra-lucano-268a8121a/)
+
+## 📝 Citación / Cómo Citar
+
+Si utilizas este software o los resultados de esta investigación en tu trabajo académico, por favor cítalo utilizando el siguiente formato BibTeX:
+
+```bibtex
+@software{becerra_lucano_catastro_li_2026,
+  author       = {Becerra Lucano, Rodrigo Alexander},
+  title        = {Catastro LI: Ecosistema Híbrido de Analítica Espacial y Gestión Catastral con Learned Indexes},
+  year         = {2026},
+  publisher    = {GitHub / Software Heritage},
+  journal      = {GitHub Repository},
+  howpublished = {\url{https://github.com/RAlexander777/CATASTRO_LI}}
+}
+```
