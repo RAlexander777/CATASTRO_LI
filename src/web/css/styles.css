@@ -1715,6 +1715,17 @@ optgroup { background: #0d1117; color: #64748b; }
     color: #fff !important;
 }
 
+/* Botón de peligro para acciones destructivas (cancelar benchmark) */
+.swal2-retro-btn.swal2-danger {
+    border-color: rgba(239, 68, 68, 0.45) !important;
+    color: #fca5a5 !important;
+}
+.swal2-retro-btn.swal2-danger:hover {
+    background: rgba(127, 29, 29, 0.45) !important;
+    border-color: rgba(239, 68, 68, 0.8) !important;
+    color: #fecaca !important;
+}
+
 /* Líneas guía geoespaciales */
 .guide-line {
     position: fixed;

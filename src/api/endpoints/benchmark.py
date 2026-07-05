@@ -16,7 +16,7 @@ import math
 import time
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -122,7 +122,7 @@ def _query_pgm(db: Session, lat: float, lon: float) -> Optional[dict]:
 
 
 @router.post("/benchmark")
-def ejecutar_benchmark(req: BenchmarkRequest, db: Session = Depends(get_db)):
+async def ejecutar_benchmark(req: BenchmarkRequest, request: Request, db: Session = Depends(get_db)):
     """
     Ejecuta `n_lots` consultas aleatorias comparando R-Tree (PostGIS GiST)
     y PGM-Index sobre los centroides de la tabla `tg_lote`.
@@ -191,6 +191,11 @@ def ejecutar_benchmark(req: BenchmarkRequest, db: Session = Depends(get_db)):
     total_cache_flush_time_s = 0.0
 
     for idx, s in enumerate(sample):
+        # Detener la ejecución si el cliente se desconectó (cancelación, F5 o cierre de ventana)
+        if await request.is_disconnected():
+            logger.info(f"Cliente desconectado. Cancelando benchmark en la iteración {idx}/{req.n_lots}.")
+            break
+
         lat = float(s.lat)
         lon = float(s.lon)
 

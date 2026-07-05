@@ -11,6 +11,7 @@
   <img src="https://img.shields.io/badge/PostgreSQL-15-336791?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
   <img src="https://img.shields.io/badge/PostGIS-3.3-336791?style=for-the-badge&logo=postgis&logoColor=white" alt="PostGIS" />
   <img src="https://img.shields.io/badge/Leaflet-1.9.4-green?style=for-the-badge&logo=leaflet&logoColor=white" alt="Leaflet" />
+  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT" />
 </p>
 
 <p align="center">
@@ -72,11 +73,122 @@ Lienzo dinámico e interactivo construido con **Vanilla JavaScript**, **Leaflet*
 
 ---
 
-## 📋 Pipeline de Ingesta e Ingeniería de Datos (ETL)
+## 🏁 Despliegue Rápido con Docker
+
+### Requisitos Previos
+
+- **Docker** y **Docker Compose** instalados
+- **Git** para clonar el repositorio
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/RAlexander777/CATASTRO_LI.git
+cd CATASTRO_LI
+```
+
+### 2. Levantar los servicios
+
+El proyecto incluye un **Makefile** que orquesta todos los comandos de Docker:
+
+```bash
+make up
+```
+
+Esto ejecuta `docker-compose up -d --build` y construye las imágenes:
+- `catastro_db`: PostgreSQL 15 + PostGIS 3.3 (puerto `5477`)
+- `catastro_api`: FastAPI con uvicorn en modo recarga automática (puerto `8010`)
+
+La primera ejecución tarda unos minutos porque descarga las imágenes base e instala dependencias. El backend espera automáticamente a que PostgreSQL esté listo y sincroniza el esquema de la base de datos.
+
+### 3. Verificar que todo esté corriendo
+
+```bash
+make ps
+```
+
+Debes ver dos contenedores en estado `Up`:
+
+| Contenedor   | Puerto       | Descripción                    |
+|--------------|--------------|--------------------------------|
+| `catastro_db`  | `5477:5432`  | PostgreSQL 15 + PostGIS 3.3   |
+| `catastro_api` | `8010:8000`  | FastAPI (uvicorn --reload)     |
+
+Abre tu navegador en:
+- **Landing Page**: [http://localhost:8010](http://localhost:8010)
+- **Visor Cartográfico**: [http://localhost:8010/visor](http://localhost:8010/visor)
+- **API Status**: [http://localhost:8010/api/status](http://localhost:8010/api/status)
+
+### 4. Poblar la base de datos con datos reales
+
+Una vez que los contenedores están corriendo, debes cargar los datos catastrales. Hay dos opciones:
+
+#### Opción A — Ingesta Real desde OpenStreetMap (24 ciudades de Perú y Latinoamérica)
+
+Este script consulta la Overpass API de OpenStreetMap y descarga los polígonos de edificios para 24 zonas metropolitanas. **Requiere conexión a internet** y puede tomar entre 5 y 15 minutos dependiendo de la velocidad de la API.
+
+```bash
+docker exec -it catastro_api python ingest_peru_cities.py
+```
+
+Este comando:
+1. Consulta Overpass API con retry automático y cooldown para evitar bloqueos
+2. Descarga los datos vectoriales crudos de cada ciudad
+3. Procesa los polígonos, los transforma a UTM 19S y los inyecta en `tg_lote`
+4. Reconstruye el PGM-Index automáticamente al finalizar
+
+Las ciudades incluidas son: Lima, Arequipa, Cusco, Puno, Juliaca, Trujillo, Chiclayo, Piura, Huancayo, Iquitos, Chimbote, Tacna, Ica, Pucallpa, Cajamarca, Ayacucho, Tarapoto, Tumbes, Bogotá, Santiago, Buenos Aires, Quito, La Paz, Medellín, Guadalajara y Ciudad de México.
+
+#### Opción B — Poblado Procedural Offline (instantáneo, sin conexión)
+
+Si no tienes acceso a internet o necesitas datos de prueba rápidos:
+
+```bash
+docker exec -it catastro_api python populate_all_cities.py
+```
+
+Este script toma los datos semilla de Puno y genera polígonos sintéticos para 18 ciudades peruanas aplicando traslaciones, rotaciones y deformaciones aleatorias. Se ejecuta en menos de un minuto.
+
+#### Opción C — Ingesta Local (solo Puno)
+
+Para pruebas rápidas solo con la ciudad de Puno:
+
+```bash
+docker exec -it catastro_api python ingest_data.py
+docker exec -it catastro_api python load_to_db.py
+```
+
+### 5. Escalar la base de datos (opcional)
+
+Para pruebas de estrés del PGM-Index con más de 500,000 registros:
+
+```bash
+docker exec -it catastro_api python scale_db.py
+```
+
+Este script multiplica por 7 los registros existentes, creando clones desplazados en cuadrantes vecinos para simular crecimiento urbano.
+
+---
+
+## 🧰 Comandos del Makefile
+
+| Comando          | Acción                                                  |
+|------------------|---------------------------------------------------------|
+| `make up`        | Construye y levanta los contenedores en segundo plano   |
+| `make down`      | Detiene y elimina los contenedores y redes              |
+| `make restart`   | `down` + `up` (reinicio completo)                       |
+| `make ps`        | Muestra el estado de los contenedores                   |
+| `make logs`      | Sigue los logs del backend FastAPI en tiempo real       |
+| `make shell`     | Abre una terminal Bash dentro del contenedor `catastro_api` |
+
+---
+
+## 🗄️ Pipeline de Ingesta (ETL) — Detalle Técnico
 
 El flujo de alimentación y normalización opera mediante scripts independientes en Python:
 
 1. **Descarga Vectorial (`ingest_data.py`)**: Realiza consultas remotas a **Overpass API (OpenStreetMap)** delimitando un cuadrante o Bounding Box específico sobre el área urbana de Puno, Perú. Consume las capas de nodos y vías etiquetadas bajo la categoría `"building"`, volcando los datos crudos en `puno_raw_data.json`.
+
 2. **Procesamiento y Carga (`load_to_db.py`)**:
    * Lee el archivo crudo `puno_raw_data.json`.
    * Filtra y extrae las secuencias de nodos para reconstruir los anillos topológicos externos de cada polígono utilizando `shapely`.
@@ -87,118 +199,47 @@ El flujo de alimentación y normalización opera mediante scripts independientes
 
 ---
 
-## 🗃️ Modelo de Datos: `tg_lote`
-
-La estructura que define el catastro gráfico incluye:
-* `id_lote` (`String(14)`, Primary Key): Identificador alfanumérico único para el lote urbano.
-* `area_grafica` (`Float`): Área calculada del polígono en metros cuadrados.
-* `peri_grafico` (`Float`): Perímetro calculado del polígono en metros lineales.
-* `fech_actua` (`Date`): Fecha del último registro o actualización.
-* `objcad_lote_gemo` (`Geometry(Polygon, 32719)`): Columna geométrica nativa de PostGIS con los anillos vectoriales cerrados en el sistema proyectado UTM 19S.
-
----
-
-## 🌐 Endpoints de la API
+## 📡 Endpoints de la API
 
 FastAPI gestiona rutas limpias sin extensiones multimedia redundantes:
 
-* `GET /`: Landing Page principal. Expone métricas de estado y el simulador de depuración en 3 cards.
-* `GET /visor`: Visor Cartográfico interactivo. Permite buscar lotes y ejecutar simulaciones sobre el mapa de Leaflet.
-* `GET /api/status`: Endpoint de diagnóstico transaccional. Retorna el nombre de la base de datos activa y el volumen exacto de registros catastrales inyectados (`SELECT COUNT(*)`).
-* `GET /api/lotes/`: Despachador GeoJSON. Recupera los lotes, reproyecta las coordenadas a formato geográfico estándar en el vuelo mediante `ST_Transform(geom, 4326)` y empaqueta la colección utilizando `ST_AsGeoJSON` para consumo del cliente.
-* `GET /api/lotes/random`: Retorna un lote aleatorio para pruebas rápidas de geolocalización.
+| Método   | Ruta                         | Descripción                                                                 |
+|----------|------------------------------|-----------------------------------------------------------------------------|
+| `GET`    | `/`                          | Landing Page principal con simulador de depuración                         |
+| `GET`    | `/visor`                     | Visor Cartográfico interactivo Leaflet                                     |
+| `GET`    | `/api/status`                | Métricas de RAM, disco, lotes, tiempo de entrenamiento y EPS               |
+| `GET`    | `/api/lotes/`                | GeoJSON filtrable por BBox con simplificación dinámica por zoom            |
+| `GET`    | `/api/lotes/random`          | Lote aleatorio con geometría completa, centroide y ciudad                  |
+| `GET`    | `/api/lotes/{id_lote}`       | Lote por código catastral de 14 dígitos                                    |
+| `GET`    | `/api/search/rtree`          | Búsqueda espacial con GiST de PostGIS (R-Tree nativo)                      |
+| `GET`    | `/api/search/learned`        | Búsqueda con PGM-Index + Hilbert (índice aprendido)                        |
+| `POST`   | `/api/cache/flush`           | Reinicia el contenedor PostgreSQL (cold cache para benchmarks)             |
+| `POST`   | `/api/benchmark`             | Benchmark masivo R-Tree vs PGM-Index con resumen estadístico               |
+| `POST`   | `/api/search/retrain`        | Reconstruye el PGM-Index desde cero                                        |
+
+---
+
+## 🗃️ Modelo de Datos: `tg_lote`
+
+| Columna              | Tipo                    | Descripción                                                   |
+|----------------------|-------------------------|---------------------------------------------------------------|
+| `id_lote`            | `VARCHAR(14)` PK        | Identificador alfanumérico único del lote urbano              |
+| `area_grafica`       | `FLOAT`                 | Área del polígono en m² (`ST_Area`)                           |
+| `peri_grafico`       | `FLOAT`                 | Perímetro del polígono en m lineales (`ST_Perimeter`)         |
+| `fech_actua`         | `DATE`                  | Fecha del último registro o actualización                     |
+| `objcad_lote_gemo`   | `GEOMETRY(Polygon, 32719)` | Columna geométrica PostGIS en el sistema UTM Zona 19S   |
 
 ---
 
 ## ⚡ Simulación de Depuración Visual ("Modo Debug")
 
-El ecosistema incorpora simuladores ralentizados paso a paso para auditar el funcionamiento interno de las búsquedas del R-Tree (GiST):
+El ecosistema incorpora simuladores ralentizados paso a paso para auditar el funcionamiento interno de las búsquedas del R-Tree (GiST) y del PGM-Index:
 
 * **En la Landing Page (Index)**: Genera y despliega horizontalmente tres tarjetas cuadradas dinámicas que abarcan todo el Hero. Muestran los SVGs de las cajas MBR y métricas reales del lote consultado (MBR Área, Candidatos, Operador espacial `ST_Overlap` / `ST_Contains` y Tiempos de búsqueda).
 * **En el Visor Cartográfico (Mapa)**: Si se activa el switch `[ ] debug`, Leaflet ralentiza el vuelo y ejecuta un escaneo espacial visual:
   1. Vuela a escala macro (`zoom: 15`) y dibuja el MBR del nodo raíz **N0** en morado.
   2. Atenúa el cuadro anterior, vuela a nivel de manzana (`zoom: 17`) y dibuja el MBR **N1** en cian.
   3. Hace zoom al predio (`zoom: 19`), atenúa el MBR y resalta el polígono real del lote **N2** en verde neón, abriendo automáticamente sus detalles catastrales.
-
----
-
-## 🗃️ Carga y Escalamiento Masivo (Scripts de Soporte)
-
-El ecosistema provee herramientas avanzadas de ingeniería de datos para poblar y escalar la base de datos de manera automatizada:
-
-1. **Ingesta Real Ampliada (`ingest_peru_cities.py`)**:
-   * Descarga de forma real mediante consultas directas a **Overpass API (OpenStreetMap)** un total de **24 zonas metropolitanas** de Perú y Latinoamérica (incluye Lima Centro, Arequipa, Cusco, Trujillo, Chiclayo, Piura, Iquitos, Bogotá, Santiago, Buenos Aires, Ciudad de México, etc.).
-   * Ejecución:
-     ```bash
-     python ingest_peru_cities.py
-     ```
-
-2. **Generador Procedural Offline (`populate_all_cities.py`)**:
-   * Si deseas poblar la base de datos completa de **18 ciudades de Perú** de manera instantánea y offline sin depender de Overpass API (evitando bloqueos de IP).
-   * Toma el set de datos vectoriales semilla de Puno (`puno_raw_data.json`), aplica traslaciones geográficas de latitud/longitud, rotaciones y pequeñas deformaciones aleatorias a los polígonos, y los inyecta en cada respectiva ciudad de origen (con sus centroides transformados a UTM 19S / SRID 32719).
-   * Ejecución:
-     ```bash
-     python populate_all_cities.py
-     ```
-
-3. **Escalamiento Local por Cuadrante (`scale_db.py`)**:
-   * Permite multiplicar por 7 el tamaño de tu base de datos catastral.
-   * Por cada lote registrado, crea 6 clones desplazados localmente en una grilla de sectores contiguos (de 1.5km a 2.5km), simulando el crecimiento de distritos o barrios vecinos. Mantiene las ciudades de origen de cada lote y actualiza sus coordenadas proyectadas en PostGIS.
-   * Ideal para pruebas de estrés de los Learned Indexes con **más de 500,000 registros catastrales**.
-   * Ejecución:
-     ```bash
-     python scale_db.py
-     ```
-
----
-
-## 🏁 Inicio Rápido
-
-### Usando Docker y Makefile (Recomendado)
-
-El proyecto incluye un entorno preconfigurado con Docker. Para levantar la base de datos de PostGIS y el backend de FastAPI de forma automática:
-
-1. **Levantar el entorno**:
-   ```bash
-   make up
-   ```
-2. **Verificar el estado de los contenedores**:
-   ```bash
-   make ps
-   ```
-3. **Monitorear los logs de la API**:
-   ```bash
-   make logs
-   ```
-4. **Apagar los servicios**:
-   ```bash
-   make down
-   ```
-
-### Instalación Local (Desarrollo Manual)
-
-Si prefieres ejecutar el entorno fuera de Docker:
-
-1. **Crear e instalar dependencias**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # En Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-2. **Configurar Variables de Entorno**:
-   Crea un archivo `.env` en la raíz del proyecto y configura tus credenciales de PostgreSQL:
-   ```env
-   DATABASE_URL=postgresql://tu_usuario:tu_contraseña@localhost:5432/catastro_li
-   ```
-3. **Correr el ETL para Puno**:
-   ```bash
-   python ingest_data.py
-   python load_to_db.py
-   ```
-4. **Iniciar el Servidor**:
-   ```bash
-   uvicorn src.main:app --reload
-   ```
 
 ---
 
@@ -215,11 +256,19 @@ Los resultados de las pruebas experimentales ejecutadas sobre el dataset catastr
 
 <p align="center"><img src="src/web/assets/figura2_memoria.png" alt="Comparación de consumo de memoria RAM" width="520" /></p>
 
-### ⚡ Tiempos de Búsqueda y Latencias (Test de 1,000 Consultas)
+### ⚡ Tiempos de Búsqueda y Latencias
+
+#### Warm Cache (GiST en RAM, 1,000 consultas)
 * **Latencia Promedio R-Tree (PostGIS GiST)**: `0.6737 ms` (673.73 µs)
 * **Latencia Promedio Learned (PGM + Hilbert)**: `0.0196 ms` (**19.57 µs**)
-* **Factor de Aceleración Promedio (Speedup)**: **36.93$\times$ más rápido** en la resolución de consultas de geolocalización catastral.
-* **Pasos Promedio en la Búsqueda Binaria Local**: `2.27` accesos de clave en memoria RAM física.
+* **Factor de Aceleración Promedio (Speedup)**: **36.93$\times$ más rápido**
+* **Pasos Promedio en la Búsqueda Binaria Local**: `2.27` accesos de clave en memoria RAM
+
+#### Cold Cache (PostgreSQL reiniciado entre cada consulta, 10 consultas)
+* **Latencia Promedio R-Tree (PostGIS GiST)**: `8.24 ms` (disco + shared_buffers vacíos)
+* **Latencia Promedio Learned (PGM + Hilbert)**: `0.033 ms` (**33 µs**)
+* **Factor de Aceleración Promedio (Speedup)**: **315$\times$ más rápido**
+* El speedup es mayor en cold cache porque el PGM-Index nunca toca disco (solo hace proyección UTM en PostgreSQL, que es una operación CPU-bound sin I/O espacial).
 
 <p align="center">
   <img src="src/web/assets/figura4_latencia.png" alt="Comparativa de Latencia de Consultas" width="370" style="margin-right: 15px;" />
@@ -228,16 +277,95 @@ Los resultados de las pruebas experimentales ejecutadas sobre el dataset catastr
 
 ---
 
+## 🔬 Benchmark Masivo Secreto
+
+La Landing Page incluye un **benchmark masivo oculto** accesible haciendo **3 clics sobre el logo de Catastro LI** en menos de 2 segundos. Este modal permite:
+
+- Ejecutar hasta 2,000 consultas aleatorias contra ambos motores (R-Tree y PGM-Index)
+- Modo **caché frío (cold cache)**: reinicia PostgreSQL antes de cada consulta para mediciones académicas limpias
+- Resumen estadístico (media, mediana, p50, p90, p95, p99, desviación estándar)
+- Descarga de resultados en CSV y JSON
+
+---
+
+## 🛠️ Instalación Local (Desarrollo Manual)
+
+Si prefieres ejecutar el entorno fuera de Docker:
+
+### Requisitos Previos
+
+- Python 3.11+
+- PostgreSQL 15 con PostGIS 3.3
+- GEOS, PROJ y GDAL instalados en el sistema
+
+### Pasos
+
+1. **Clonar y crear el entorno virtual**:
+   ```bash
+   git clone https://github.com/RAlexander777/CATASTRO_LI.git
+   cd CATASTRO_LI
+   python -m venv venv
+   source venv/bin/activate  # En Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+2. **Configurar la base de datos**:
+   Crea una base de datos PostgreSQL con PostGIS habilitado:
+   ```bash
+   createdb catastro_li
+   psql -d catastro_li -c "CREATE EXTENSION postgis;"
+   ```
+
+3. **Archivo `.env`**:
+   ```env
+   DATABASE_URL=postgresql://usuario:contraseña@localhost:5432/catastro_li
+   ```
+
+4. **Cargar datos**:
+   ```bash
+   python ingest_peru_cities.py    # Opción A: 24 ciudades reales
+   # o
+   python populate_all_cities.py    # Opción B: 18 ciudades procedurales
+   # o
+   python ingest_data.py && python load_to_db.py  # Opción C: solo Puno
+   ```
+
+5. **Iniciar el servidor**:
+   ```bash
+   uvicorn src.main:app --reload
+   ```
+
+   Abre [http://localhost:8000](http://localhost:8000) en tu navegador.
+
+---
+
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+Este proyecto está bajo la **Licencia MIT**. Consulta el archivo [LICENSE](LICENSE) para más detalles.
 
-## 🤝 Autor y Contacto
+---
 
-**Rodrigo Alexander Becerra Lucano**  
-Doctorando en Ciencia de la Computación — Universidad Nacional del Altiplano (Puno, Perú)
+## 🤝 Créditos y Contacto
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rodrigo-alexander-becerra-lucano-268a8121a/)
+**Catastro LI** fue desarrollado íntegramente por:
+
+<p align="center">
+  <strong>Rodrigo Alexander Becerra Lucano</strong><br />
+  <em>Doctorando en Ciencia de la Computación</em><br />
+  Universidad Nacional del Altiplano — Puno, Perú
+</p>
+
+<p align="center">
+  <a href="https://www.linkedin.com/in/rodrigo-alexander-becerra-lucano-268a8121a/" target="_blank" rel="noopener">
+    <img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn" />
+  </a>
+  &nbsp;
+  <a href="https://github.com/RAlexander777/CATASTRO_LI" target="_blank" rel="noopener">
+    <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" />
+  </a>
+</p>
+
+---
 
 ## 📝 Citación / Cómo Citar
 
@@ -248,7 +376,7 @@ Si utilizas este software o los resultados de esta investigación en tu trabajo 
   author       = {Becerra Lucano, Rodrigo Alexander},
   title        = {Catastro LI: Ecosistema Híbrido de Analítica Espacial y Gestión Catastral con Learned Indexes},
   year         = {2026},
-  publisher    = {GitHub / Software Heritage},
+  publisher    = {GitHub},
   journal      = {GitHub Repository},
   howpublished = {\url{https://github.com/RAlexander777/CATASTRO_LI}}
 }

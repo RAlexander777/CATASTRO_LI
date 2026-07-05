@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.37">
+    <link rel="stylesheet" href="css/styles.css?v=2.38">
 </head>
 
 <body>
@@ -185,7 +185,7 @@
                     Marco Teórico
                 </h3>
                 <!-- Enlace al repositorio principal del ecosistema -->
-                <a href="https://github.com/tu-usuario/catastro_li" target="_blank" rel="noopener noreferrer"
+                <a href="https://github.com/RAlexander777/CATASTRO_LI" target="_blank" rel="noopener noreferrer"
                     class="research-badge"
                     style="display: inline-flex; align-items: center; gap: 0.3rem; border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; text-decoration: none; font-size: 0.6rem; background: rgba(168, 85, 247, 0.05); padding: 0.1rem 0.4rem; transition: all 0.2s ease;"
                     onmouseover="this.style.background='rgba(168, 85, 247, 0.15)'"
@@ -200,29 +200,29 @@
                 </a>
             </div>
 
-            <p style="margin-bottom: 0.8rem;">
-                <strong>Learned Indexes</strong> aplicados a catastros urbanos. Mapea coordenadas bidimensionales
-                a la curva unidimensional de <strong>Hilbert</strong> conservando la vecindad, y alimenta
-                modelos predictivos (<strong>PGM-Index</strong>) que aproximan posiciones físicas con regresiones
-                segmentadas en vez de árboles jerárquicos.
+            <p style="margin-bottom: 0.8rem; font-size: 0.72rem; line-height: 1.4;">
+                <strong>Catastro LI</strong> evalúa la sustitución de las estructuras de indexación espacial tradicionales (como el R-Tree que utiliza GiST en PostGIS) por modelos de <strong>Indexación Aprendida (Learned Indexes)</strong>:
+                <br><br>
+                1. <strong>Reducción Fractal</strong>: Mapea los centroides bidimensionales $(X, Y)$ de los lotes urbanos a una curva unidimensional de <strong>Hilbert (1D)</strong> preservando la vecindad espacial en memoria.
+                <br>
+                2. <strong>Entrenamiento Acotado</strong>: Entrena un modelo predictivo geométrico por tramos (<strong>PGM-Index</strong>) sobre las claves ordenadas para aproximar la posición física con un error máximo $\epsilon = 4$.
+                <br>
+                3. <strong>Búsqueda Híbrida</strong>: Evita los constantes fallos de caché por persecución de punteros del R-Tree clásico, logrando búsquedas en microsegundos mediante prefetching secuencial en caché L1/L2.
             </p>
 
             <div class="research-badge-row" style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.7rem;">
                 <span class="research-badge"
-                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(129, 140, 248, 0.08); border: 1px solid rgba(129, 140, 248, 0.2); color: #a5b4fc;">Hilbert
-                    1D</span>
+                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(129, 140, 248, 0.08); border: 1px solid rgba(129, 140, 248, 0.2); color: #a5b4fc;">Hilbert 1D</span>
                 <span class="research-badge"
                     style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.2); color: #c084fc;">PGM-Index</span>
                 <span class="research-badge"
-                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); color: #34d399;">PostGIS
-                    GIS</span>
+                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); color: #34d399;">PostGIS GiST</span>
             </div>
 
             <div class="research-links-wrapper"
                 style="display: flex; flex-direction: column; gap: 0.35rem; border-top: 1px dashed rgba(129, 140, 248, 0.15); padding-top: 0.6rem;">
                 <span
-                    style="font-size: 0.6rem; color: #6366f1; text-transform: lowercase; font-family: var(--font-family); margin-bottom: 0.1rem;">//
-                    referencias_core:</span>
+                    style="font-size: 0.6rem; color: #6366f1; text-transform: lowercase; font-family: var(--font-family); margin-bottom: 0.1rem;">// referencias_clave_del_paper:</span>
 
                 <!-- Link 1: Kraska et al. (Learned Indexes) -->
                 <a href="https://dl.acm.org/doi/10.1145/3183713.3196926" target="_blank" rel="noopener noreferrer"
@@ -252,8 +252,8 @@
                     </svg>
                 </a>
 
-                <!-- Link 3: Kamel & Faloutsos (Hilbert Spatial) -->
-                <a href="https://dl.acm.org/doi/10.5555/645920.672993" target="_blank" rel="noopener noreferrer"
+                <!-- Link 3: Kamel & Faloutsos (Hilbert R-Tree) -->
+                <a href="https://www.cs.cmu.edu/~christos/PUBLICATIONS.OLDER/vldb94.pdf" target="_blank" rel="noopener noreferrer"
                     style="display: flex; align-items: center; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); text-decoration: none; font-family: var(--font-family); background: rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border: 1px solid rgba(255,255,255,0.03); transition: all 0.2s;"
                     onmouseover="this.style.borderColor='rgba(16,185,129,0.2)'; this.style.color='#ffffff';"
                     onmouseout="this.style.borderColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-muted)';">
@@ -265,9 +265,21 @@
                         <line x1="10" y1="14" x2="21" y2="3"></line>
                     </svg>
                 </a>
-            </div>
 
-            <!-- Badges removidos (movidos arriba) -->
+                <!-- Link 4: Hellerstein et al. (GiST) -->
+                <a href="https://www.vldb.org/conf/1995/P562.PDF" target="_blank" rel="noopener noreferrer"
+                    style="display: flex; align-items: center; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); text-decoration: none; font-family: var(--font-family); background: rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border: 1px solid rgba(255,255,255,0.03); transition: all 0.2s;"
+                    onmouseover="this.style.borderColor='rgba(245,158,11,0.2)'; this.style.color='#ffffff';"
+                    onmouseout="this.style.borderColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-muted)';">
+                    <span>↳ Hellerstein et al. (1995) Generalized Search Trees (GiST)</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6;">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
+            </div>
         </div>
 
         <!-- PESTAÑA 2: Métricas y Rendimiento (consolidadas) -->
@@ -685,7 +697,7 @@
     </footer>
 
     <!-- Cargar app.js con buster de caché actualizado -->
-    <script src="js/app.js?v=2.51"></script>
+    <script src="js/app.js?v=2.53"></script>
 </body>
 
 </html>

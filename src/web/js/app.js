@@ -1875,6 +1875,7 @@ function activarNodosPGMSecuencial(stats) {
 
 let benchmarkData = null;     // Almacena el resultado completo del benchmark
 let benchmarkIsRunning = false;
+let benchmarkAbortController = null;   // AbortController para cancelar el fetch
 
 // --- Detección de 3 clics sobre el logo ---
 (function setupLogoTripleClick() {
@@ -1913,14 +1914,64 @@ function openBenchmarkModal() {
     setTimeout(() => document.getElementById("benchmark-n").focus(), 50);
 }
 
-function closeBenchmarkModal() {
+async function closeBenchmarkModal(force = false) {
+    if (benchmarkIsRunning && !force) {
+        const result = await Swal.fire({
+            title: `> benchmark_en_ejecución`,
+            html: `El benchmark masivo se está ejecutando ahora mismo.<br><br>
+                   <span style="color: #ef4444; font-size: 0.85rem;">
+                   Si cierras el modal o recargas la página, <strong>el proceso se cancelará</strong>
+                   y los resultados parciales se perderán.</span>`,
+            icon: 'warning',
+            background: '#0b0f19',
+            color: '#f1f5f9',
+            showCancelButton: true,
+            confirmButtonText: 'cancelar benchmark',
+            cancelButtonText: 'seguir esperando',
+            buttonsStyling: false,
+            customClass: {
+                popup: 'swal2-retro-popup',
+                title: 'swal2-retro-title',
+                htmlContainer: 'swal2-retro-html',
+                confirmButton: 'swal2-retro-btn swal2-danger',
+                cancelButton: 'swal2-retro-btn'
+            }
+        });
+        if (!result.isConfirmed) return;
+        cancelBenchmark();
+    }
     const modal = document.getElementById("benchmark-modal");
     if (modal) modal.style.display = "none";
 }
 
+function cancelBenchmark() {
+    if (!benchmarkIsRunning) return;
+    if (benchmarkAbortController) {
+        benchmarkAbortController.abort();
+        benchmarkAbortController = null;
+    }
+    benchmarkIsRunning = false;
+    removeBenchmarkBeforeUnload();
+}
+
+function beforeUnloadBenchmark(e) {
+    if (!benchmarkIsRunning) return;
+    e.preventDefault();
+    e.returnValue = '';
+}
+
+function removeBenchmarkBeforeUnload() {
+    window.removeEventListener("beforeunload", beforeUnloadBenchmark);
+}
+
 // --- Cerrar con ESC o con el botón ---
 document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeBenchmarkModal();
+    if (e.key === "Escape" && !Swal.isVisible()) {
+        const modal = document.getElementById("benchmark-modal");
+        if (modal && modal.style.display !== "none") {
+            closeBenchmarkModal();
+        }
+    }
 });
 
 function initBenchmarkControls() {
@@ -1964,6 +2015,9 @@ async function runBenchmark() {
     }
 
     benchmarkIsRunning = true;
+    benchmarkAbortController = new AbortController();
+    window.addEventListener("beforeunload", beforeUnloadBenchmark);
+
     const runBtn = document.getElementById("benchmark-run");
     if (runBtn) runBtn.disabled = true;
     nEl.disabled = true;
@@ -1985,12 +2039,14 @@ async function runBenchmark() {
     document.getElementById("benchmark-results").style.display = "none";
     document.getElementById("benchmark-footer").style.display = "none";
 
+    let progressTimer = null;
+
     try {
         // Animación de progreso estimada (porque el backend hace el trabajo en bloque)
         let pct = 0;
         const totalEstS = coldCache ? n * 7 : n * 0.5;
         const startAnim = performance.now();
-        const progressTimer = setInterval(() => {
+        progressTimer = setInterval(() => {
             const elapsedS = (performance.now() - startAnim) / 1000;
             pct = Math.min(95, (elapsedS / totalEstS) * 100);
             progressFill.style.width = `${pct}%`;
@@ -2006,6 +2062,7 @@ async function runBenchmark() {
                 cold_cache: coldCache,
                 include_segment_details: includeSegments,
             }),
+            signal: benchmarkAbortController.signal,
         });
         const elapsed = (performance.now() - t0) / 1000;
 
@@ -2023,10 +2080,18 @@ async function runBenchmark() {
         benchmarkData = data;
         renderBenchmarkResults(data);
     } catch (e) {
-        progressText.textContent = `error: ${e.message}`;
-        progressFill.style.background = "linear-gradient(90deg, #ef4444, #b91c1c)";
+        clearInterval(progressTimer);
+        if (e.name === "AbortError") {
+            progressText.textContent = "benchmark cancelado por el usuario";
+            progressFill.style.background = "linear-gradient(90deg, #f59e0b, #b45309)";
+        } else {
+            progressText.textContent = `error: ${e.message}`;
+            progressFill.style.background = "linear-gradient(90deg, #ef4444, #b91c1c)";
+        }
     } finally {
         benchmarkIsRunning = false;
+        benchmarkAbortController = null;
+        removeBenchmarkBeforeUnload();
         if (runBtn) runBtn.disabled = false;
         nEl.disabled = false;
         segEl.disabled = false;
