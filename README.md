@@ -16,7 +16,7 @@
 
 <p align="center">
   <strong>¿Y si reemplazamos las estructuras espaciales tradicionales por modelos indexados de Machine Learning?</strong><br />
-  Un ecosistema híbrido de alto rendimiento para analítica espacial y gestión de fichas catastrales urbanas, diseñado para comparar la eficiencia de <strong>Learned Indexes</strong> frente a las estructuras de indexación espacial tradicionales (como R-Trees y GiST) en consultas de rango y geolocalización.
+  Un ecosistema híbrido de alto rendimiento para analítica espacial y gestión de fichas catastrales urbanas, diseñado para comparar la eficiencia de <strong>Índices Aprendidos (Learned Indexes)</strong> frente al <strong>R-Tree de PostGIS (GiST)</strong> en consultas de geolocalización catastral.
 </p>
 
 ---
@@ -27,9 +27,9 @@ Este proyecto surge como parte de una investigación avanzada en el Doctorado de
 
 Para resolver consultas espaciales de geolocalización sin recurrir a estructuras jerárquicas clásicas de cajas (MBR) —las cuales sufren constantes fallos de caché debido a la persecución de punteros dispersos en RAM/disco—, extendemos esta teoría co-diseñando una arquitectura web catastral híbrida. Proyectamos las geometrías de los lotes urbanos mediante la **Curva de Hilbert** (Kamel y Faloutsos, 1994) y modelamos su distribución lineal con el **PGM-Index** (Ferragina y Vinciguerra, 2020), evaluando la mejora directa frente a la interfaz extensible de indexación **GiST** (Hellerstein et al., 1995) de PostGIS.
 
-## 🚀 El Concepto: Indexación Aprendida vs. R-Trees
+## 🚀 El Concepto: Indexación Aprendida vs. R-Tree de PostGIS (GiST)
 
-Las bases de datos espaciales tradicionales confían en la **Familia R-Tree** (implementada mediante la extensión **GiST** en PostgreSQL) para indexar geometrías agrupándolas jerárquicamente en Cajas de Contorno Mínimo (**MBRs**, *Minimum Bounding Boxes*). Sin embargo, navegar y resolver intersecciones de MBRs solapados introduce costos computacionales significativos.
+Las bases de datos espaciales tradicionales confían en el **R-Tree** de PostGIS, implementado sobre la interfaz extensible **GiST** (Generalized Search Tree), para indexar geometrías agrupándolas jerárquicamente en Cajas de Contorno Mínimo (**MBRs**, *Minimum Bounding Boxes*). Sin embargo, navegar y resolver intersecciones de MBRs solapados introduce costos computacionales significativos debido a la persecución de punteros dispersos y fallos de caché.
 
 **Catastro LI** plantea un enfoque experimental alternativo:
 1. **Reducción de Dimensionalidad Fractal**: Proyectar los centroides bidimensionales $(X, Y)$ de las geometrías complejas sobre una curva unidimensional continua (**Curva de Hilbert 1D**), preservando la localidad espacial en memoria.
@@ -211,7 +211,7 @@ FastAPI gestiona rutas limpias sin extensiones multimedia redundantes:
 | `GET`    | `/api/lotes/`                | GeoJSON filtrable por BBox con simplificación dinámica por zoom            |
 | `GET`    | `/api/lotes/random`          | Lote aleatorio con geometría completa, centroide y ciudad                  |
 | `GET`    | `/api/lotes/{id_lote}`       | Lote por código catastral de 14 dígitos                                    |
-| `GET`    | `/api/search/rtree`          | Búsqueda espacial con GiST de PostGIS (R-Tree nativo)                      |
+| `GET`    | `/api/search/rtree`          | Búsqueda espacial con R-Tree de PostGIS (GiST)                    |
 | `GET`    | `/api/search/learned`        | Búsqueda con PGM-Index + Hilbert (índice aprendido)                        |
 | `POST`   | `/api/cache/flush`           | Reinicia el contenedor PostgreSQL (cold cache para benchmarks)             |
 | `POST`   | `/api/benchmark`             | Benchmark masivo R-Tree vs PGM-Index con resumen estadístico               |
@@ -233,7 +233,7 @@ FastAPI gestiona rutas limpias sin extensiones multimedia redundantes:
 
 ## ⚡ Simulación de Depuración Visual ("Modo Debug")
 
-El ecosistema incorpora simuladores ralentizados paso a paso para auditar el funcionamiento interno de las búsquedas del R-Tree (GiST) y del PGM-Index:
+El ecosistema incorpora simuladores ralentizados paso a paso para auditar el funcionamiento interno de las búsquedas del R-Tree de PostGIS (GiST) y del PGM-Index:
 
 * **En la Landing Page (Index)**: Genera y despliega horizontalmente tres tarjetas cuadradas dinámicas que abarcan todo el Hero. Muestran los SVGs de las cajas MBR y métricas reales del lote consultado (MBR Área, Candidatos, Operador espacial `ST_Overlap` / `ST_Contains` y Tiempos de búsqueda).
 * **En el Visor Cartográfico (Mapa)**: Si se activa el switch `[ ] debug`, Leaflet ralentiza el vuelo y ejecuta un escaneo espacial visual:
