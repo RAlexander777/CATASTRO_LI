@@ -247,6 +247,17 @@ El ecosistema incorpora simuladores ralentizados paso a paso para auditar el fun
 
 Los resultados de las pruebas experimentales ejecutadas sobre el dataset catastral consolidado arrojan las siguientes métricas de rendimiento comparativo:
 
+### 💻 Entorno de Pruebas (Hardware & Software)
+
+Todas las simulaciones y benchmarks comparativos se llevaron a cabo utilizando la siguiente configuración física de hardware y software relevante:
+*   **Procesador (CPU):** Intel Core Ultra 5 245KF (frecuencia base de 4.20 GHz, frecuencia turbo máxima de 5.20 GHz)
+*   **Memoria RAM:** 32 GB (2 $\times$ 16 GB) Kingston Fury Beast DDR5 a 5600 MHz (CL40) en arquitectura Dual Channel
+*   **Almacenamiento (SSD):** SSD Kingston NV3 de 1 TB M.2 PCIe 4.0 NVMe
+*   **Sistema Operativo:** Windows 11 Pro (64 bits)
+*   **Base de Datos:** PostgreSQL 15 espacialmente extendido con PostGIS 3.3
+
+---
+
 ### 💾 Consumo de Memoria Estructural
 * **Índice Espacial PostGIS (GiST)**: `16.25 MB`
 * **Índice Aprendido (PGM-Index en RAM)**: `6.33 MB` (¡Un **ahorro del 61.05%** en memoria RAM física!).

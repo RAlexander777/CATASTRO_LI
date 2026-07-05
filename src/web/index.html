@@ -11,6 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css?v=2.38">
+    <!-- Chart.js para visualización gráfica didáctica de rendimiento -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -344,6 +346,15 @@
                     <span class="metric-value">Consumo: <strong id="val-learned-ram">—</strong></span>
                 </div>
             </div>
+
+            <!-- Gráfico Único de Rendimiento -->
+            <div class="charts-container-retro" style="margin-top: 1.2rem; border-top: 1px dashed rgba(129, 140, 248, 0.15); padding-top: 1rem; width: 100%;">
+                <div class="chart-wrapper-retro" style="background: rgba(11, 15, 25, 0.55); border: 1px solid rgba(129, 140, 248, 0.15); padding: 0.8rem; border-radius: 4px; box-sizing: border-box; width: 100%;">
+                    <span style="font-family: 'Fira Code', monospace; font-size: 0.7rem; color: #a5b4fc; display: block; margin-bottom: 0.8rem; text-transform: lowercase; text-align: left;">// comparativa_latencia_media_busqueda (us)</span>
+                    <canvas id="chart-latencia-barras" style="max-height: 220px; width: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
         </div>
         </div>
     </div>
@@ -704,7 +715,7 @@
     </footer>
 
     <!-- Cargar app.js con buster de caché actualizado -->
-    <script src="js/app.js?v=2.53"></script>
+    <script src="js/app.js?v=2.60"></script>
 </body>
 
 </html>

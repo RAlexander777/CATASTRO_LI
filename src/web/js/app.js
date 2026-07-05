@@ -1148,7 +1148,17 @@ function toggleResearchModal(show) {
 }
 function toggleMetricsModal(show) {
     const modal = document.getElementById("metrics-modal");
-    if (modal) modal.style.display = show ? "flex" : "none";
+    if (modal) {
+        modal.style.display = show ? "flex" : "none";
+        if (show) {
+            // Dar un tiempo mínimo al DOM para aplicar flex antes de pintar Chart.js
+            setTimeout(() => {
+                if (window.inicializarGraficosMetrics) {
+                    window.inicializarGraficosMetrics();
+                }
+            }, 120);
+        }
+    }
 }
 // Cerrar modales con clic en el fondo
 document.addEventListener("click", (e) => {
@@ -2150,6 +2160,12 @@ function renderBenchmarkResults(data) {
     setStat("stat-successful",    summary.successful_n);
     setStat("stat-requested",     summary.requested_n);
 
+    // Actualizar medias globales de benchmark en microsegundos para los gráficos interactivos
+    if (summary.rtree_ms && summary.pgm_ms) {
+        window.benchmarkRtreeMeanUs = summary.rtree_ms.mean * 1000;
+        window.benchmarkPgmMeanUs = summary.pgm_ms.mean * 1000;
+    }
+
     document.getElementById("benchmark-summary").style.display = "block";
 
     // Tabla con los primeros 200
@@ -2239,6 +2255,89 @@ function triggerDownload(blob, filename) {
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 100);
 }
+
+// Variables globales para guardar las medias medidas en el benchmark
+window.benchmarkRtreeMeanUs = null;
+window.benchmarkPgmMeanUs = null;
+
+let chartLatencia = null;
+
+function inicializarGraficosMetrics() {
+    const ctxBarras = document.getElementById("chart-latencia-barras");
+    if (!ctxBarras) return;
+
+    // Destruir instancia previa para evitar solapamientos
+    if (chartLatencia) chartLatencia.destroy();
+
+    // Medias a renderizar (por defecto las del paper catastral, o las medidas en caliente)
+    const rtreeUs = window.benchmarkRtreeMeanUs || 673.7;
+    const pgmUs = window.benchmarkPgmMeanUs || 19.6;
+
+    const ctx = ctxBarras.getContext("2d");
+    
+    // Crear degradados neón premium
+    const gradientRtree = ctx.createLinearGradient(0, 0, 450, 0);
+    gradientRtree.addColorStop(0, "rgba(168, 85, 247, 0.15)");
+    gradientRtree.addColorStop(1, "rgba(168, 85, 247, 0.85)");
+
+    const gradientPgm = ctx.createLinearGradient(0, 0, 450, 0);
+    gradientPgm.addColorStop(0, "rgba(16, 185, 129, 0.15)");
+    gradientPgm.addColorStop(1, "rgba(16, 185, 129, 0.85)");
+
+    chartLatencia = new Chart(ctxBarras, {
+        type: "bar",
+        data: {
+            labels: ["R-Tree (PostGIS)", "PGM-Index (RAM)"],
+            datasets: [{
+                data: [parseFloat(rtreeUs.toFixed(1)), parseFloat(pgmUs.toFixed(1))],
+                backgroundColor: [gradientRtree, gradientPgm],
+                borderColor: ["#a855f7", "#10b981"],
+                borderWidth: 1.5,
+                barThickness: 28,
+                borderRadius: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: "y",
+            animation: {
+                duration: 1400,
+                easing: "easeOutQuart"
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: "rgba(11, 15, 25, 0.95)",
+                    titleColor: "#a5b4fc",
+                    bodyColor: "#ffffff",
+                    titleFont: { family: "Fira Code, monospace", size: 10, weight: "bold" },
+                    bodyFont: { family: "Fira Code, monospace", size: 10 },
+                    borderColor: "rgba(129, 140, 248, 0.25)",
+                    borderWidth: 1,
+                    cornerRadius: 3,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return ` Latencia Media: ${context.parsed.x.toLocaleString()} us`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: "rgba(129, 140, 248, 0.04)" },
+                    ticks: { color: "#a5b4fc", font: { family: "Fira Code, monospace", size: 8 } }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: "#a5b4fc", font: { family: "Fira Code, monospace", size: 9, weight: "bold" } }
+                }
+            }
+        }
+    });
+}
+window.inicializarGraficosMetrics = inicializarGraficosMetrics;
 
 // Inicializar listeners del modal al cargar el DOM
 if (document.readyState === "loading") {
