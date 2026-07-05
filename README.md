@@ -288,7 +288,7 @@ Para corroborar científicamente la ventaja del Learned Index frente a PostGIS, 
 *   **Prueba de Hipótesis (Wilcoxon Signed-Rank):** Los tiempos de consulta no siguen una distribución normal (Shapiro-Wilk $p < 0.05$, $p_R = 7.62 \times 10^{-36}$, $p_P = 8.30 \times 10^{-49}$). Se aplicó la prueba no paramétrica de Wilcoxon pareada, obteniendo un valor estadístico de **0.00** y un **p-valor de $3.33 \times 10^{-165}$**, lo que confirma de forma categórica que la aceleración del PGM-Index es estadísticamente significativa ($p < 0.001$).
 
 <p align="center">
-  <img src="PAPER/figura_boxplot.png" alt="Boxplot Comparativo de Latencias (Escala Logarítmica)" width="480" />
+  <img src="src/web/assets/figura_boxplot.png" alt="Boxplot Comparativo de Latencias (Escala Logarítmica)" width="480" />
 </p>
 
 ---
