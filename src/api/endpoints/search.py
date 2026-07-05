@@ -63,6 +63,8 @@ def consultar_learned_index(lat: float, lon: float, db: Session = Depends(get_db
     """
     Ejecuta una consulta de geolocalización por Learned Index.
     Mapea la coordenada a Hilbert 1D, predice la dirección en PGM-Index y compara contra PostGIS GiST.
+    Devuelve también los detalles del segmento del PGM que se usó (slope, intercept,
+    puntos en el segmento, predicción vs posición real) para depuración.
     """
     try:
         res = evaluator.query(lat, lon, db)

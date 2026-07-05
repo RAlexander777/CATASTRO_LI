@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.22">
+    <link rel="stylesheet" href="css/styles.css?v=2.33">
 </head>
 
 <body>
@@ -27,8 +27,9 @@
         <header class="main-header"
             style="flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 0.6rem; border-bottom: 1px dashed rgba(129, 140, 248, 0.15); padding-bottom: 0.8rem; margin-bottom: 1.2rem; width: 100%; display: flex;">
             <div style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; width: 100%;">
-                <img src="assets/LI_solo.png" alt="Catastro LI Logo"
-                    style="height: 60px; width: auto; object-fit: contain;" />
+                <img id="logo-trigger" src="assets/LI_solo.png" alt="Catastro LI Logo"
+                    style="height: 60px; width: auto; object-fit: contain; cursor: pointer; user-select: none;"
+                    title="Catastro LI" />
                 
                 <h1 style="margin: 0; font-size: 2.2rem; background: linear-gradient(135deg, #ffffff 30%, var(--primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; line-height: 1.2; text-align: center; width: 100%;">
                     CATASTRO_LI <span class="brand-coord" style="font-size: 0.75rem; vertical-align: middle; color: rgba(129, 140, 248, 0.7);">[ 19S / UTM ]</span>
@@ -109,80 +110,6 @@
             <!-- Contenedor de cards del modo debug (ocupa todo el ancho del hero) -->
             <div id="debug-steps-container" class="debug-steps-container"></div>
 
-            <div class="r-tree-toggle-row" style="display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap;">
-                <button type="button" id="btn-toggle-traces" class="btn-toggle-link">> mostrar_trazas_busqueda</button>
-            </div>
-
-            <!-- Representación de la Traza de Búsqueda Simultánea (R-Tree vs PGM-Index) -->
-            <div class="dual-traversal-container" style="display: flex; gap: 1rem; width: 100%; justify-content: space-between; flex-wrap: wrap; margin-top: 0.5rem; text-align: left;">
-                
-                <!-- Columna Izquierda: R-Tree GiST -->
-                <div class="r-tree-traversal-widget" style="flex: 1; min-width: 240px; background: rgba(9, 13, 22, 0.4); border: 1.5px solid rgba(129, 140, 248, 0.3); padding: 0.8rem; box-shadow: 0 0 10px rgba(129, 140, 248, 0.05); border-radius: 0px;">
-                    <div class="traversal-title" style="color: #818cf8; font-weight: bold; margin-bottom: 0.6rem; font-size: 0.72rem; text-transform: lowercase;">>> r_tree_gist_trace:</div>
-                    <div class="traversal-nodes" style="display: flex; align-items: center; justify-content: space-between;">
-                        <div class="traversal-node" id="r-tree-n0">
-                            <span class="node-bullet n0-bullet"></span>
-                            <div class="node-text">
-                                <span class="node-index">N0</span>
-                                <span class="node-level">Raíz</span>
-                                <span class="node-meta" id="n0-meta">macro_bbox</span>
-                            </div>
-                        </div>
-                        <div class="traversal-connector" id="r-tree-c0"></div>
-                        <div class="traversal-node" id="r-tree-n1">
-                            <span class="node-bullet n1-bullet"></span>
-                            <div class="node-text">
-                                <span class="node-index">N1</span>
-                                <span class="node-level">Manzana</span>
-                                <span class="node-meta" id="n1-meta">sector_cluster</span>
-                            </div>
-                        </div>
-                        <div class="traversal-connector" id="r-tree-c1"></div>
-                        <div class="traversal-node" id="r-tree-n2">
-                            <span class="node-bullet n2-bullet"></span>
-                            <div class="node-text">
-                                <span class="node-index">N2</span>
-                                <span class="node-level">Predio</span>
-                                <span class="node-meta" id="n2-meta">lote_id</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Columna Derecha: PGM-Index Learned -->
-                <div class="pgm-traversal-widget" style="flex: 1; min-width: 240px; background: rgba(9, 13, 22, 0.4); border: 1.5px solid rgba(16, 185, 129, 0.3); padding: 0.8rem; box-shadow: 0 0 10px rgba(16, 185, 129, 0.05); border-radius: 0px;">
-                    <div class="traversal-title" style="color: #34d399; font-weight: bold; margin-bottom: 0.6rem; font-size: 0.72rem; text-transform: lowercase;">>> pgm_learned_index_trace:</div>
-                    <div class="traversal-nodes" style="display: flex; align-items: center; justify-content: space-between;">
-                        <div class="traversal-node" id="pgm-n0">
-                            <span class="node-bullet pgm-bullet" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); width: 8px; height: 8px; display: inline-block; transition: all 0.25s ease;"></span>
-                            <div class="node-text">
-                                <span class="node-index" style="color: #34d399;">HK</span>
-                                <span class="node-level">Clave 1D</span>
-                                <span class="node-meta" id="pgm-n0-meta" style="color: var(--text-muted);">hilbert_val</span>
-                            </div>
-                        </div>
-                        <div class="traversal-connector" id="pgm-c0" style="background: rgba(16, 185, 129, 0.15); height: 2px; flex-grow: 1; margin: 0 0.4rem; transition: all 0.25s ease;"></div>
-                        <div class="traversal-node" id="pgm-n1">
-                            <span class="node-bullet pgm-bullet" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); width: 8px; height: 8px; display: inline-block; transition: all 0.25s ease;"></span>
-                            <div class="node-text">
-                                <span class="node-index" style="color: #34d399;">PGM</span>
-                                <span class="node-level">Predicción</span>
-                                <span class="node-meta" id="pgm-n1-meta" style="color: var(--text-muted);">modelo_lineal</span>
-                            </div>
-                        </div>
-                        <div class="traversal-connector" id="pgm-c1" style="background: rgba(16, 185, 129, 0.15); height: 2px; flex-grow: 1; margin: 0 0.4rem; transition: all 0.25s ease;"></div>
-                        <div class="traversal-node" id="pgm-n2">
-                            <span class="node-bullet pgm-bullet" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); width: 8px; height: 8px; display: inline-block; transition: all 0.25s ease;"></span>
-                            <div class="node-text">
-                                <span class="node-index" style="color: #34d399;">BS</span>
-                                <span class="node-level">Local (ε)</span>
-                                <span class="node-meta" id="pgm-n2-meta" style="color: var(--text-muted);">rango_ε</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
     </div>
 
     <!-- Modo de Depuración Visual y Control de Caché -->
@@ -237,16 +164,14 @@
     </section>
 
     <div class="dashboard-tabs">
-        <button class="tab-btn active" data-tab="research-tab">> cientifico</button>
-        <button class="tab-btn" data-tab="metrics-tab">> métricas</button>
-        <button class="tab-btn" data-tab="efficiency-tab">> rendimiento</button>
-        <button class="tab-btn" data-tab="wiki-tab">> wiki_r_tree</button>
+        <button class="tab-btn active" data-tab="research-tab">> investigacion</button>
+        <button class="tab-btn" data-tab="metrics-tab">> rendimiento</button>
     </div>
 
     <!-- Contenedor de Pestañas (Centradas y con menos ruido visual) -->
     <main class="dashboard-tabs-container">
 
-        <!-- PESTAÑA 1: Fundamento Científico -->
+        <!-- PESTAÑA 1: Marco Teórico e Investigación -->
         <div id="research-tab" class="dashboard-card tab-pane active">
             <div
                 style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
@@ -257,7 +182,7 @@
                         <polyline points="2 17 12 22 22 17"></polyline>
                         <polyline points="2 12 12 17 22 12"></polyline>
                     </svg>
-                    Línea de Investigación
+                    Marco Teórico
                 </h3>
                 <!-- Enlace al repositorio principal del ecosistema -->
                 <a href="https://github.com/tu-usuario/catastro_li" target="_blank" rel="noopener noreferrer"
@@ -276,15 +201,25 @@
             </div>
 
             <p style="margin-bottom: 0.8rem;">
-                Indexación aprendida (<strong>Learned Indexes</strong>) aplicada a catastros urbanos. Mapea coordenadas
-                bidimensionales a la curva unidimensional de <strong>Hilbert</strong> conservando la vecindad. Los
-                códigos resultantes alimentan modelos predictivos (<strong>PGM-Index</strong>) que aproximan posiciones
-                físicas con regresiones segmentadas.
+                <strong>Learned Indexes</strong> aplicados a catastros urbanos. Mapea coordenadas bidimensionales
+                a la curva unidimensional de <strong>Hilbert</strong> conservando la vecindad, y alimenta
+                modelos predictivos (<strong>PGM-Index</strong>) que aproximan posiciones físicas con regresiones
+                segmentadas en vez de árboles jerárquicos.
             </p>
 
-            <!-- Fila de Enlaces a la Literatura Fundacional de la Tesis -->
+            <div class="research-badge-row" style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.7rem;">
+                <span class="research-badge"
+                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(129, 140, 248, 0.08); border: 1px solid rgba(129, 140, 248, 0.2); color: #a5b4fc;">Hilbert
+                    1D</span>
+                <span class="research-badge"
+                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.2); color: #c084fc;">PGM-Index</span>
+                <span class="research-badge"
+                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); color: #34d399;">PostGIS
+                    GIS</span>
+            </div>
+
             <div class="research-links-wrapper"
-                style="display: flex; flex-direction: column; gap: 0.35rem; border-top: 1px dashed rgba(129, 140, 248, 0.15); padding-top: 0.6rem; margin-bottom: 0.6rem;">
+                style="display: flex; flex-direction: column; gap: 0.35rem; border-top: 1px dashed rgba(129, 140, 248, 0.15); padding-top: 0.6rem;">
                 <span
                     style="font-size: 0.6rem; color: #6366f1; text-transform: lowercase; font-family: var(--font-family); margin-bottom: 0.1rem;">//
                     referencias_core:</span>
@@ -332,26 +267,16 @@
                 </a>
             </div>
 
-            <!-- Badges de Estado e Infraestructura -->
-            <div class="research-badge-row" style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
-                <span class="research-badge"
-                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(129, 140, 248, 0.08); border: 1px solid rgba(129, 140, 248, 0.2); color: #a5b4fc;">Hilbert
-                    1D</span>
-                <span class="research-badge"
-                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.2); color: #c084fc;">PGM-Index</span>
-                <span class="research-badge"
-                    style="font-size: 0.6rem; padding: 0.1rem 0.4rem; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); color: #34d399;">PostGIS
-                    GIS</span>
-            </div>
+            <!-- Badges removidos (movidos arriba) -->
         </div>
 
-        <!-- PESTAÑA 2: Métricas del Ecosistema -->
+        <!-- PESTAÑA 2: Métricas y Rendimiento (consolidadas) -->
         <div id="metrics-tab" class="dashboard-card tab-pane">
             <h3>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
                     <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                 </svg>
-                Métricas del Ecosistema
+                Métricas y Rendimiento
             </h3>
 
             <div class="lotes-total-widget">
@@ -377,19 +302,8 @@
                     <span class="mem-widget-lbl">Entreno PGM</span>
                 </div>
             </div>
-        </div>
 
-        <!-- PESTAÑA 3: Comparativa de Eficiencia -->
-        <div id="efficiency-tab" class="dashboard-card tab-pane">
-            <h3>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
-                </svg>
-                Eficiencia Espacial (RAM)
-            </h3>
-            <div class="metrics-comparison-grid">
+            <div class="metrics-comparison-grid" style="margin-top: 0.7rem; border-top: 1px dashed rgba(129, 140, 248, 0.15); padding-top: 0.6rem;">
                 <div class="metric-box">
                     <span class="metric-label">R-Tree / GiST Tradicional</span>
                     <div class="metric-visual-bar">
@@ -403,49 +317,6 @@
                         <div class="bar-fill learned-bar" id="bar-learned-fill" style="width: 0%;"></div>
                     </div>
                     <span class="metric-value">Consumo: <strong id="val-learned-ram">—</strong></span>
-                </div>
-            </div>
-        </div>
-
-        <!-- PESTAÑA 4: Wiki R-Tree & GiST -->
-        <div id="wiki-tab" class="dashboard-card tab-pane">
-            <h3>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                </svg>
-                Wiki: Indexación Espacial
-            </h3>
-            <div class="wiki-content"
-                style="font-family: var(--font-family); font-size: 0.72rem; line-height: 1.45; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.8rem; text-align: left; max-height: 155px; overflow-y: auto; padding-right: 0.4rem;">
-                <div>
-                    <strong style="color: #a855f7; text-transform: lowercase;">1. ¿qué es un r-tree?</strong>
-                    <p style="margin-top: 0.2rem; margin-bottom: 0;">
-                        Es una estructura jerárquica balanceada diseñada para indexar datos multidimensionales (puntos,
-                        polígonos). Agrupa objetos cercanos dentro de cajas contenedoras <strong>MBR (Minimum Bounding
-                            Rectangles)</strong>. Al buscar, el motor desciende descartando ramas que no intersectan la
-                        consulta, reduciendo la complejidad a tiempo logarítmico $O(\log N)$.
-                    </p>
-                </div>
-                <div style="border-top: 1px dashed rgba(129, 140, 248, 0.15); padding-top: 0.5rem;">
-                    <strong style="color: #06b6d4; text-transform: lowercase;">2. ¿cómo opera gist en
-                        postgresql?</strong>
-                    <p style="margin-top: 0.2rem; margin-bottom: 0;">
-                        <strong>GiST (Generalized Search Tree)</strong> es una plantilla de indexación extensible en
-                        PostgreSQL. Permite crear índices personalizados mediante operadores estándar. PostGIS
-                        implementa su R-Tree sobre GiST para acelerar consultas espaciales de solape y contención (`&&`,
-                        `ST_Contains`).
-                    </p>
-                </div>
-                <div style="border-top: 1px dashed rgba(129, 140, 248, 0.15); padding-top: 0.5rem;">
-                    <strong style="color: #10b981; text-transform: lowercase;">3. la alternativa learned index</strong>
-                    <p style="margin-top: 0.2rem; margin-bottom: 0;">
-                        A diferencia del R-Tree/GiST tradicional que almacena MBRs explícitos y punteros en memoria, los
-                        **Learned Indexes** mapean las coordenadas a 1D (Curva de Hilbert) y entrenan modelos
-                        predictivos (PGM-Index) para aproximar la posición del registro en disco mediante funciones
-                        matemáticas en vez de búsquedas jerárquicas.
-                    </p>
                 </div>
             </div>
         </div>
@@ -630,8 +501,159 @@
 
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         MODAL OCULTO: BENCHMARK MASIVO (R-Tree vs PGM-Index)
+         Se activa haciendo 3 clics sobre el logo en menos de 2 segundos.
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div id="benchmark-modal" class="benchmark-modal-overlay" style="display: none;">
+        <div class="benchmark-modal" role="dialog" aria-labelledby="benchmark-title">
+            <button id="benchmark-close" class="benchmark-close-btn" title="Cerrar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+
+            <header class="benchmark-header">
+                <h2 id="benchmark-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v18h18"/>
+                        <path d="M7 16l4-4 4 2 6-7"/>
+                    </svg>
+                    benchmark_masivo
+                </h2>
+                <span class="benchmark-subtitle">// r-tree (gist) vs learned index (pgm) · n queries aleatorias</span>
+                <p class="benchmark-warning">
+                    ⚠ para resultados académicos limpios (cold-cache real), marca
+                    <strong>caché frío entre cada consulta</strong> en la configuración.
+                    Eso reinicia el contenedor PostgreSQL antes de cada query, garantizando
+                    que ambos motores parten de un caché 100% vacío.
+                </p>
+            </header>
+
+            <!-- Controles de configuración -->
+            <section id="benchmark-config" class="benchmark-config">
+                <div class="benchmark-field">
+                    <label for="benchmark-n">cantidad de lotes</label>
+                    <input type="number" id="benchmark-n" min="1" max="2000" value="100" step="1">
+                </div>
+                <div class="benchmark-field benchmark-field--checkbox">
+                    <label>
+                        <input type="checkbox" id="benchmark-cold">
+                        <span>caché frío entre cada consulta <span class="benchmark-hint">(reinicio de PG · ~7s × N)</span></span>
+                    </label>
+                </div>
+                <div class="benchmark-field benchmark-field--checkbox">
+                    <label>
+                        <input type="checkbox" id="benchmark-segments">
+                        <span>incluir detalles del segmento PGM</span>
+                    </label>
+                </div>
+                <button id="benchmark-run" class="benchmark-run-btn" type="button">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    ejecutar benchmark
+                </button>
+            </section>
+
+            <!-- Progreso -->
+            <section id="benchmark-progress" class="benchmark-progress" style="display: none;">
+                <div class="benchmark-progress-label">
+                    <span id="benchmark-progress-text">ejecutando consultas…</span>
+                    <span id="benchmark-progress-count">0 / 0</span>
+                </div>
+                <div class="benchmark-progress-bar">
+                    <div id="benchmark-progress-fill" class="benchmark-progress-fill" style="width: 0%;"></div>
+                </div>
+            </section>
+
+            <!-- Resumen estadístico -->
+            <section id="benchmark-summary" class="benchmark-summary" style="display: none;">
+                <h3>> resumen_estadistico</h3>
+                <div class="benchmark-summary-grid">
+                    <div class="benchmark-stat benchmark-stat--postgres">
+                        <span class="benchmark-stat-key">R-Tree · media</span>
+                        <span class="benchmark-stat-val" id="stat-rtree-mean">—</span>
+                        <span class="benchmark-stat-unit">ms</span>
+                    </div>
+                    <div class="benchmark-stat benchmark-stat--pgm">
+                        <span class="benchmark-stat-key">PGM · media</span>
+                        <span class="benchmark-stat-val" id="stat-pgm-mean">—</span>
+                        <span class="benchmark-stat-unit">ms</span>
+                    </div>
+                    <div class="benchmark-stat benchmark-stat--speedup">
+                        <span class="benchmark-stat-key">Speedup medio</span>
+                        <span class="benchmark-stat-val" id="stat-speedup-mean">—</span>
+                        <span class="benchmark-stat-unit">×</span>
+                    </div>
+                    <div class="benchmark-stat">
+                        <span class="benchmark-stat-key">R-Tree · p99</span>
+                        <span class="benchmark-stat-val" id="stat-rtree-p99">—</span>
+                        <span class="benchmark-stat-unit">ms</span>
+                    </div>
+                    <div class="benchmark-stat">
+                        <span class="benchmark-stat-key">PGM · p99</span>
+                        <span class="benchmark-stat-val" id="stat-pgm-p99">—</span>
+                        <span class="benchmark-stat-unit">ms</span>
+                    </div>
+                    <div class="benchmark-stat">
+                        <span class="benchmark-stat-key">consultas OK</span>
+                        <span class="benchmark-stat-val" id="stat-successful">—</span>
+                        <span class="benchmark-stat-unit">/ <span id="stat-requested">—</span></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabla de resultados -->
+            <section id="benchmark-results" class="benchmark-results" style="display: none;">
+                <div class="benchmark-results-header">
+                    <span class="benchmark-results-title">> resultados (primeros 200)</span>
+                    <div class="benchmark-downloads">
+                        <button id="benchmark-download-csv" class="benchmark-download-btn" type="button">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            csv
+                        </button>
+                        <button id="benchmark-download-json" class="benchmark-download-btn" type="button">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            json
+                        </button>
+                    </div>
+                </div>
+                <div class="benchmark-table-wrapper">
+                    <table id="benchmark-table" class="benchmark-table">
+                        <thead>
+                            <tr>
+                                <th>id_lote</th>
+                                <th>lat</th>
+                                <th>lon</th>
+                                <th>R-Tree (ms)</th>
+                                <th>PGM (ms)</th>
+                                <th>Speedup</th>
+                            </tr>
+                        </thead>
+                        <tbody id="benchmark-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <footer id="benchmark-footer" class="benchmark-footer" style="display: none;">
+                <span id="benchmark-footer-msg">benchmark completado · listo para descargar y graficar</span>
+            </footer>
+        </div>
+    </div>
+
     <!-- Cargar app.js con buster de caché actualizado -->
-    <script src="js/app.js?v=2.38"></script>
+    <script src="js/app.js?v=2.48"></script>
 </body>
 
 </html>

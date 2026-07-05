@@ -80,6 +80,83 @@ class PGMEvaluator:
               f"Segmentos: {len(self.index.segments)}, Elementos: {len(self.lotes)}, "
               f"Tiempo de entrenamiento: {self.training_time_s:.4f}s.")
 
+    def search_pgm_only(self, lat: float, lon: float, db: Session) -> dict:
+        """
+        Pipeline puro del PGM-Index: solo proyección → Hilbert → predicción → búsqueda binaria.
+        NO ejecuta ninguna consulta GiST/R-Tree, ni el SELECT final de geometría,
+        ni el lookup de ciudad. Sirve para benchmarks justos donde se quiere aislar
+        el coste del PGM frente al coste del R-Tree.
+        """
+        if not self.initialized:
+            self.initialize(db)
+
+        if not self.lotes or not self.index:
+            return None
+
+        proj_query = text("""
+            SELECT
+                ST_X(ST_Transform(ST_SetSRID(ST_Point(:lon, :lat), 4326), 32719)) AS utm_x,
+                ST_Y(ST_Transform(ST_SetSRID(ST_Point(:lon, :lat), 4326), 32719)) AS utm_y;
+        """)
+        proj_res = db.execute(proj_query, {"lat": lat, "lon": lon}).first()
+        if not proj_res or proj_res.utm_x is None:
+            return None
+
+        utm_x = proj_res.utm_x
+        utm_y = proj_res.utm_y
+
+        h_key = self.sorter.to_hilbert(utm_x, utm_y)
+
+        start_search = time.perf_counter()
+
+        low, high = self.index.search_range(h_key)
+
+        found_idx = -1
+        binary_steps = 0
+        l = low
+        r = high
+        while l <= r:
+            binary_steps += 1
+            mid = (l + r) // 2
+            mid_key = self.sorted_keys[mid]
+            if mid_key == h_key:
+                found_idx = mid
+                break
+            elif mid_key < h_key:
+                l = mid + 1
+            else:
+                r = mid - 1
+
+        if found_idx == -1:
+            closest_idx = low
+            min_diff = abs(self.sorted_keys[low] - h_key)
+            for idx in range(low + 1, high + 1):
+                diff = abs(self.sorted_keys[idx] - h_key)
+                if diff < min_diff:
+                    min_diff = diff
+                    closest_idx = idx
+            found_idx = closest_idx
+
+        search_time_ms = (time.perf_counter() - start_search) * 1000
+
+        seg_info = self.index.get_segment(h_key) or {}
+
+        return {
+            "hilbert_key": h_key,
+            "found_idx": int(found_idx),
+            "search_time_ms": round(search_time_ms, 4),
+            "binary_steps": binary_steps,
+            "segment": {
+                "segment_index": seg_info.get("segment_index"),
+                "segment_key": seg_info.get("segment_key"),
+                "segment_next_key": seg_info.get("segment_next_key"),
+                "slope": seg_info.get("slope"),
+                "intercept": seg_info.get("intercept"),
+                "points_count": seg_info.get("points_count"),
+                "predicted_position": seg_info.get("predicted_position"),
+            },
+        }
+
     def query(self, lat: float, lon: float, db: Session):
         """
         Consulta espacial de geolocalización.
@@ -182,7 +259,11 @@ class PGMEvaluator:
         
         # Relación de velocidad
         speedup = rtree_time_ms / (search_time_ms or 0.0001)
-        
+
+        # Detalles del segmento del PGM en el que se inspeccionó la clave
+        # (útil para depuración / visualizador — qué regresión se aplicó)
+        seg_info = self.index.get_segment(h_key) or {}
+
         return {
             "lote": {
                 "id_lote": lote_db.id_lote,
@@ -201,7 +282,18 @@ class PGMEvaluator:
                 "epsilon": self.epsilon,
                 "learned_search_time_ms": round(search_time_ms, 4),
                 "rtree_search_time_ms": round(rtree_time_ms, 4),
-                "speedup_ratio": round(speedup, 2)
+                "speedup_ratio": round(speedup, 2),
+                # Detalles del segmento donde cayó la consulta
+                "segment": {
+                    "segment_index": seg_info.get("segment_index"),
+                    "segment_key": seg_info.get("segment_key"),
+                    "segment_next_key": seg_info.get("segment_next_key"),
+                    "slope": seg_info.get("slope"),
+                    "intercept": seg_info.get("intercept"),
+                    "points_count": seg_info.get("points_count"),
+                    "predicted_position": seg_info.get("predicted_position"),
+                    "actual_position": int(found_idx),
+                }
             }
         }
 

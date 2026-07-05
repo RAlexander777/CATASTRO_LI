@@ -60,44 +60,11 @@ infoControl.onAdd = function (map) {
     const div = L.DomUtil.create('div', 'map-info-panel-retro');
     div.innerHTML = `
         <span id="info-msg">> inicializando_visor...</span>
-        
-        <!-- Representación de la Traza de Búsqueda R-Tree en el Visor -->
-        <div class="r-tree-traversal-widget" style="margin-top: 0.5rem; background: rgba(9, 13, 22, 0.95); border: 1px solid rgba(129, 140, 248, 0.25); box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-            <div class="traversal-title">> r_tree_traversal_trace:</div>
-            <div class="traversal-nodes">
-                <div class="traversal-node" id="r-tree-n0">
-                    <span class="node-bullet n0-bullet"></span>
-                    <div class="node-text">
-                        <span class="node-index">N0</span>
-                        <span class="node-level">Raíz</span>
-                        <span class="node-meta" id="n0-meta">macro_bbox</span>
-                    </div>
-                </div>
-                <div class="traversal-connector" id="r-tree-c0"></div>
-                <div class="traversal-node" id="r-tree-n1">
-                    <span class="node-bullet n1-bullet"></span>
-                    <div class="node-text">
-                        <span class="node-index">N1</span>
-                        <span class="node-level">Manzana</span>
-                        <span class="node-meta" id="n1-meta">sector_cluster</span>
-                    </div>
-                </div>
-                <div class="traversal-connector" id="r-tree-c1"></div>
-                <div class="traversal-node" id="r-tree-n2">
-                    <span class="node-bullet n2-bullet"></span>
-                    <div class="node-text">
-                        <span class="node-index">N2</span>
-                        <span class="node-level">Predio</span>
-                        <span class="node-meta" id="n2-meta">lote_id</span>
-                    </div>
-                </div>
-            </div>
-        </div>
     `;
-    
+
     // Evitar que hacer clic en el panel active eventos del mapa Leaflet
     L.DomEvent.disableClickPropagation(div);
-    
+
     return div;
 };
 infoControl.addTo(map);
@@ -554,6 +521,149 @@ function limpiarVisualizacionRTree() {
     rTreeVisualLayers = [];
 }
 
+// ── Panel de Debug PGM-Index (HK → PGM → BS) ────────────────────────────
+
+const PGM_DEBUG_STEPS = ["hk", "pgm", "bs"];
+const PGM_DEBUG_TITLES = {
+    0: "Hilbert 1D · Mapeo",
+    1: "PGM · Predicción",
+    2: "BS · Búsqueda Local"
+};
+
+function isDebugPGMVisorActive() {
+    const cb = document.getElementById("debug-mode-checkbox");
+    return !!(cb && cb.checked);
+}
+
+function toggleDebugPGMVisor() {
+    const panel = document.getElementById("pgm-debug-panel");
+    if (!panel) return;
+    panel.style.display = isDebugPGMVisorActive() ? "flex" : "none";
+    if (panel.style.display === "flex") {
+        limpiarDebugPGMVisor();
+    }
+}
+
+function limpiarDebugPGMVisor() {
+    // Resetear las 3 cards
+    PGM_DEBUG_STEPS.forEach((_, idx) => {
+        const card = document.getElementById(`pgm-debug-card-${idx}`);
+        if (card) {
+            card.classList.remove("pgm-debug-card-active", "pgm-debug-card-done");
+        }
+    });
+    // Resetear valores
+    setVal("pgm-debug-hk-val", "—");
+    setVal("pgm-debug-seg-val", "—");
+    setVal("pgm-debug-pts-val", "—");
+    setVal("pgm-debug-slope-val", "—");
+    setVal("pgm-debug-intercept-val", "—");
+    setVal("pgm-debug-range-val", "—");
+    setVal("pgm-debug-eps-val", "—");
+    setVal("pgm-debug-predreal-val", "—");
+    setVal("pgm-debug-acc-val", "—");
+    setVal("pgm-debug-bs-label", "[— , —]");
+    setVal("pgm-debug-bs-iter", "— iteraciones");
+    setVal("pgm-debug-seg-label", "— segmentos");
+    setVal("pgm-debug-subtitle", "Iniciando consulta…");
+    // Resetear animaciones SVG
+    const ring = document.getElementById("pgm-debug-hk-ring");
+    if (ring) ring.style.opacity = "0";
+}
+
+function setVal(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+}
+
+function fmtFloat(v, digits = 4) {
+    if (v === null || v === undefined) return "—";
+    return Number(v).toFixed(digits);
+}
+
+function fmtExp(v) {
+    if (v === null || v === undefined) return "—";
+    return Number(v).toExponential(2);
+}
+
+function activarStepDebugPGMVisor(step, subtitleText) {
+    if (!isDebugPGMVisorActive()) return;
+    // Marcar las cards anteriores como "done" y la actual como "active"
+    for (let i = 0; i <= step; i++) {
+        const card = document.getElementById(`pgm-debug-card-${i}`);
+        if (!card) continue;
+        card.classList.remove("pgm-debug-card-active", "pgm-debug-card-done");
+        if (i < step) {
+            card.classList.add("pgm-debug-card-done");
+        } else {
+            card.classList.add("pgm-debug-card-active");
+        }
+    }
+    if (subtitleText) {
+        setVal("pgm-debug-subtitle", `paso ${step} · ${PGM_DEBUG_TITLES[step]} · ${subtitleText}`);
+    }
+    // Animar el ring del paso 0 (HK)
+    if (step === 0) {
+        const ring = document.getElementById("pgm-debug-hk-ring");
+        if (ring) {
+            ring.style.opacity = "0.5";
+            ring.style.transition = "r 0.6s ease-out, opacity 0.6s ease-out";
+            ring.setAttribute("r", "16");
+            setTimeout(() => { if (ring) { ring.setAttribute("r", "8"); ring.style.opacity = "0"; } }, 700);
+        }
+    }
+}
+
+function renderCardDebugPGMVisor(step, data) {
+    if (!isDebugPGMVisorActive()) return;
+    if (step === 0) {
+        // HK: solo tenemos la clave
+        if (data.hilbert_key !== undefined) {
+            setVal("pgm-debug-hk-val", String(data.hilbert_key));
+        }
+    } else if (step === 1) {
+        // PGM: segmento con slope, intercept, puntos
+        if (data.segment_index !== undefined) {
+            setVal("pgm-debug-seg-val", `#${data.segment_index}${data.segments_count ? `/${data.segments_count - 1}` : ""}`);
+            setVal("pgm-debug-seg-label", `seg #${data.segment_index} • ${data.segments_count || "?"} segs`);
+        }
+        if (data.points_count !== undefined) {
+            setVal("pgm-debug-pts-val", `${data.points_count} pts`);
+        }
+        if (data.slope !== null && data.slope !== undefined) {
+            setVal("pgm-debug-slope-val", fmtExp(data.slope));
+        }
+        if (data.intercept !== null && data.intercept !== undefined) {
+            setVal("pgm-debug-intercept-val", fmtFloat(data.intercept, 2));
+        }
+        if (data.slope !== null && data.slope !== undefined && data.intercept !== null && data.intercept !== undefined) {
+            setVal("pgm-debug-equation", `y = ${fmtExp(data.slope)}·x ${data.intercept >= 0 ? "+" : "−"} ${Math.abs(data.intercept).toFixed(2)}`);
+        }
+    } else if (step === 2) {
+        // BS: rango, ε, iteraciones, pred vs real
+        if (data.pgm_search_range) {
+            const [lo, hi] = data.pgm_search_range;
+            setVal("pgm-debug-range-val", `[${lo}, ${hi}]`);
+            setVal("pgm-debug-bs-label", `[${lo}, ${hi}]`);
+        }
+        if (data.epsilon !== undefined) {
+            setVal("pgm-debug-eps-val", `±${data.epsilon}`);
+        }
+        if (data.binary_steps !== undefined) {
+            setVal("pgm-debug-bs-iter", `${data.binary_steps} iteraciones`);
+        }
+        if (data.predicted_position !== null && data.predicted_position !== undefined &&
+            data.actual_position !== null && data.actual_position !== undefined) {
+            setVal("pgm-debug-predreal-val", `${data.predicted_position} → ${data.actual_position}`);
+        } else if (data.predicted_position !== null && data.predicted_position !== undefined) {
+            setVal("pgm-debug-predreal-val", `${data.predicted_position}`);
+        }
+        if (data.learned_search_time_ms !== undefined) {
+            setVal("pgm-debug-acc-val", `${fmtFloat(data.learned_search_time_ms, 3)} ms`);
+        }
+    }
+}
+
 function visualizarBusquedaRTree(loteCenter, loteGeom) {
     limpiarVisualizacionRTree();
     
@@ -816,6 +926,14 @@ document.addEventListener("DOMContentLoaded", () => {
         citySelector.addEventListener("change", (e) => irACiudad(e.target.value));
     }
 
+    // — Switch debug: mostrar/ocultar panel de debug PGM-Index —
+    const debugToggleCb = document.getElementById("debug-mode-checkbox");
+    if (debugToggleCb) {
+        debugToggleCb.addEventListener("change", toggleDebugPGMVisor);
+        // Estado inicial (por si el switch queda marcado al recargar)
+        toggleDebugPGMVisor();
+    }
+
     // — Botones de estilo de mapa base —
     document.querySelectorAll(".style-btn").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -944,23 +1062,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-    // — Toggle unificado de trazas en el visor —
-    const btnToggleVisorTraces = document.getElementById("btn-toggle-traces-visor");
-    const visorTraceWidgets = document.querySelectorAll("#visor-dual-traces .r-tree-traversal-widget, #visor-dual-traces .pgm-traversal-widget");
-    
-    if (btnToggleVisorTraces && visorTraceWidgets.length) {
-        btnToggleVisorTraces.addEventListener("click", () => {
-            let anyExpanded = false;
-            visorTraceWidgets.forEach(w => {
-                const was = w.classList.toggle("expanded");
-                if (was) anyExpanded = true;
-            });
-            btnToggleVisorTraces.textContent = anyExpanded
-                ? "> ocultar_trazas_busqueda"
-                : "> mostrar_trazas_busqueda";
-        });
-    }
-
     // — Buscar lote por coordenadas al hacer clic en el mapa si debug está activo —
     map.on('click', async function (e) {
         const debugCheckbox = document.getElementById("debug-mode-checkbox");
@@ -1010,37 +1111,6 @@ function ejecutarSimulacionNormalVisor(data) {
     actualizarHudRendimiento(searchTime);
     visualizarBusquedaRTree(data.center, data.geom);
     animarTrazaRTree(data);
-    animarTrazaPGM(data);
-}
-
-function animarTrazaPGM(data) {
-    const pgmMetas = {
-        n0: document.getElementById("pgm-n0-meta"),
-        n1: document.getElementById("pgm-n1-meta"),
-        n2: document.getElementById("pgm-n2-meta")
-    };
-    
-    if (pgmMetas.n0) pgmMetas.n0.textContent = "hilbert_val";
-    if (pgmMetas.n1) pgmMetas.n1.textContent = "modelo_lineal";
-    if (pgmMetas.n2) pgmMetas.n2.textContent = "rango_ε";
-
-    const elements = {
-        n0: document.getElementById("pgm-n0"),
-        c0: document.getElementById("pgm-c0"),
-        n1: document.getElementById("pgm-n1"),
-        c1: document.getElementById("pgm-c1"),
-        n2: document.getElementById("pgm-n2")
-    };
-    
-    Object.values(elements).forEach(el => {
-        if (el) el.className = el.className.split(" ")[0];
-    });
-
-    setTimeout(() => { if (elements.n0) elements.n0.classList.add("active-pgm-n0"); }, 50);
-    setTimeout(() => { if (elements.c0) elements.c0.classList.add("active-pgm-c0"); }, 180);
-    setTimeout(() => { if (elements.n1) elements.n1.classList.add("active-pgm-n1"); }, 300);
-    setTimeout(() => { if (elements.c1) elements.c1.classList.add("active-pgm-c1"); }, 420);
-    setTimeout(() => { if (elements.n2) elements.n2.classList.add("active-pgm-n2"); }, 550);
 }
 
 function ejecutarSimulacionPasoAPasoVisor(data) {
@@ -1070,6 +1140,20 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
         if (learnedRes.status === 'fulfilled' && learnedRes.value.ok) {
             const result = await learnedRes.value.json();
             learnedStats = result.stats;
+            // Actualizar las metas del widget PGM con los datos reales del segmento
+            const seg = learnedStats.segment;
+            const n0 = document.getElementById("pgm-n0-meta");
+            const n1 = document.getElementById("pgm-n1-meta");
+            const n2 = document.getElementById("pgm-n2-meta");
+            if (n0 && learnedStats.hilbert_key !== undefined) {
+                n0.textContent = `hk=${learnedStats.hilbert_key}`;
+            }
+            if (n1 && seg) {
+                n1.textContent = `seg #${seg.segment_index} • ${seg.points_count} pts`;
+            }
+            if (n2 && learnedStats.pgm_search_range) {
+                n2.textContent = `ε=${learnedStats.epsilon} • [${learnedStats.pgm_search_range[0]},${learnedStats.pgm_search_range[1]}]`;
+            }
         }
     }).catch(() => {});
     
@@ -1085,18 +1169,6 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
         if (el) el.className = el.className.split(" ")[0];
     });
 
-    // Resetear clases de animación PGM
-    const pgmElements = {
-        n0: document.getElementById("pgm-n0"),
-        c0: document.getElementById("pgm-c0"),
-        n1: document.getElementById("pgm-n1"),
-        c1: document.getElementById("pgm-c1"),
-        n2: document.getElementById("pgm-n2")
-    };
-    Object.values(pgmElements).forEach(el => {
-        if (el) el.className = el.className.split(" ")[0];
-    });
-    
     const n0Meta = document.getElementById("n0-meta");
     const n1Meta = document.getElementById("n1-meta");
     const n2Meta = document.getElementById("n2-meta");
@@ -1104,85 +1176,95 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
     if (n1Meta) n1Meta.textContent = "sector_cluster";
     if (n2Meta) n2Meta.textContent = "lote_id";
 
-    const pgmN0Meta = document.getElementById("pgm-n0-meta");
-    const pgmN1Meta = document.getElementById("pgm-n1-meta");
-    const pgmN2Meta = document.getElementById("pgm-n2-meta");
-    if (pgmN0Meta) pgmN0Meta.textContent = "evaluando...";
-    if (pgmN1Meta) pgmN1Meta.textContent = "predicting...";
-    if (pgmN2Meta) pgmN2Meta.textContent = "searching...";
-    
+    // Resetear panel de debug PGM (HK → PGM → BS)
+    limpiarDebugPGMVisor();
+    activarStepDebugPGMVisor(0, "evaluando...");
+
     // Zoom out inicial a escala macro
     map.flyTo([lat, lon], 15, { duration: 0.8 });
-    
+
     let rectN0, rectN1;
-    
+
     // Paso 1: Raíz N0
     setTimeout(() => {
         const boundsN0 = [[lat - 0.0055, lon - 0.0075], [lat + 0.0055, lon + 0.0075]];
-        rectN0 = L.rectangle(boundsN0, { 
-            color: "#a855f7", 
-            weight: 2, 
-            fill: true, 
-            fillColor: "#a855f7", 
-            fillOpacity: 0.08, 
-            dashArray: "6, 6", 
-            interactive: false 
+        rectN0 = L.rectangle(boundsN0, {
+            color: "#a855f7",
+            weight: 2,
+            fill: true,
+            fillColor: "#a855f7",
+            fillOpacity: 0.08,
+            dashArray: "6, 6",
+            interactive: false
         }).addTo(map);
         rectN0.bindTooltip("R-Tree N0 (Raíz)", { permanent: true, className: "r-tree-tooltip-n0", direction: "top", opacity: 0.8 });
         rTreeVisualLayers.push(rectN0);
         rectN0.bringToFront();
-        
+
         if (elements.n0) elements.n0.classList.add("active-n0");
         if (n0Meta) n0Meta.textContent = "evaluando...";
 
-        // PGM paso 0
-        if (pgmElements.n0) pgmElements.n0.classList.add("active-pgm-n0");
-        if (pgmN0Meta) pgmN0Meta.textContent = "hilbert_key";
+        // PGM paso 0: HK
+        const hk = learnedStats ? learnedStats.hilbert_key : null;
+        activarStepDebugPGMVisor(0, hk !== null && hk !== undefined ? `hk=${hk}` : "evaluando...");
     }, 900);
-    
+
     // Paso 2: Nodo Interno N1 (Manzana)
     setTimeout(() => {
         if (rectN0) {
             rectN0.setStyle({ color: "rgba(255, 255, 255, 0.15)", fillColor: "none" });
         }
-        
+
         const boundsN1 = [[lat - 0.0012, lon - 0.0016], [lat + 0.0012, lon + 0.0016]];
-        rectN1 = L.rectangle(boundsN1, { 
-            color: "#06b6d4", 
-            weight: 2, 
-            fill: true, 
-            fillColor: "#06b6d4", 
-            fillOpacity: 0.1, 
-            dashArray: "4, 4", 
-            interactive: false 
+        rectN1 = L.rectangle(boundsN1, {
+            color: "#06b6d4",
+            weight: 2,
+            fill: true,
+            fillColor: "#06b6d4",
+            fillOpacity: 0.1,
+            dashArray: "4, 4",
+            interactive: false
         }).addTo(map);
         rectN1.bindTooltip("R-Tree N1 (Nodo Interno)", { permanent: true, className: "r-tree-tooltip-n1", direction: "top", opacity: 0.8 });
         rTreeVisualLayers.push(rectN1);
         rectN1.bringToFront();
-        
+
         map.flyTo([lat, lon], 17, { duration: 1.0 });
-        
+
         if (elements.c0) elements.c0.classList.add("active-c0");
         if (elements.n1) elements.n1.classList.add("active-n1");
         if (n0Meta) n0Meta.textContent = data.ciudad ? data.ciudad.split("(")[0].trim() : "Puno";
         if (n1Meta) n1Meta.textContent = "evaluando...";
 
-        // PGM paso 1
-        if (pgmElements.c0) pgmElements.c0.classList.add("active-pgm-c0");
-        if (pgmElements.n1) pgmElements.n1.classList.add("active-pgm-n1");
-        if (pgmN1Meta) pgmN1Meta.textContent = "modelo_lineal";
+        // PGM paso 1: Predicción
+        const seg = learnedStats && learnedStats.segment;
+        if (seg) {
+            activarStepDebugPGMVisor(1, `seg #${seg.segment_index} • ${seg.points_count} pts`);
+            // Actualizar la card PGM con la ecuación del segmento
+            renderCardDebugPGMVisor(1, {
+                segment_index: seg.segment_index,
+                points_count: seg.points_count,
+                slope: seg.slope,
+                intercept: seg.intercept,
+                predicted_position: seg.predicted_position,
+                segments_count: learnedStats.segments_count,
+                epsilon: learnedStats.epsilon
+            });
+        } else {
+            activarStepDebugPGMVisor(1, "modelo_lineal");
+        }
     }, 2100);
-    
+
     // Paso 3: Lote N2
     setTimeout(() => {
         if (rectN1) {
             rectN1.setStyle({ color: "rgba(255, 255, 255, 0.15)", fillColor: "none" });
         }
-        
+
         lotesLayer.eachLayer((layer) => {
             if (layer.feature && layer.feature.properties && layer.feature.properties.id_lote === data.id_lote) {
                 layer.setStyle({
-                    color: "#10b981", 
+                    color: "#10b981",
                     weight: 4,
                     fillColor: "#10b981",
                     fillOpacity: 0.65
@@ -1190,9 +1272,9 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
                 setTimeout(() => { layer.openPopup(); }, 300);
             }
         });
-        
+
         map.flyTo([lat, lon], 19, { duration: 1.0 });
-        
+
         if (elements.c1) elements.c1.classList.add("active-c1");
         if (elements.n2) elements.n2.classList.add("active-n2");
         if (n1Meta) {
@@ -1201,11 +1283,22 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
         }
         if (n2Meta) n2Meta.textContent = `id ${data.id_lote.substring(10)}`;
 
-        // PGM paso 2
-        if (pgmElements.c1) pgmElements.c1.classList.add("active-pgm-c1");
-        if (pgmElements.n2) pgmElements.n2.classList.add("active-pgm-n2");
-        if (pgmN2Meta && learnedStats) pgmN2Meta.textContent = `ε=${learnedStats.epsilon}`;
-        
+        // PGM paso 2: Búsqueda local
+        if (learnedStats) {
+            const r = learnedStats.pgm_search_range;
+            activarStepDebugPGMVisor(2, `ε=${learnedStats.epsilon} • [${r[0]},${r[1]}] • ${learnedStats.binary_steps} iter`);
+            renderCardDebugPGMVisor(2, {
+                pgm_search_range: r,
+                epsilon: learnedStats.epsilon,
+                binary_steps: learnedStats.binary_steps,
+                predicted_position: learnedStats.segment ? learnedStats.segment.predicted_position : null,
+                actual_position: learnedStats.segment ? learnedStats.segment.actual_position : null,
+                learned_search_time_ms: learnedStats.learned_search_time_ms
+            });
+        } else {
+            activarStepDebugPGMVisor(2, "rango_ε");
+        }
+
         // HUD dual
         if (learnedStats) {
             const rtreeMs = realRtreeTime || learnedStats.rtree_search_time_ms;
@@ -1214,7 +1307,7 @@ function ejecutarSimulacionPasoAPasoVisor(data) {
             const searchTime = data.execution_time_ms ? Number(data.execution_time_ms) : 0.145;
             actualizarHudRendimiento(searchTime);
         }
-        
+
         if (diceBtn) diceBtn.disabled = false;
     }, 3300);
 }
@@ -1242,6 +1335,11 @@ async function buscarLoteUnificadoVisor(lat, lon) {
             lat = center.lat;
             lon = center.lng;
         }
+    }
+
+    // Resetear el panel de debug PGM-Index antes de iniciar la consulta
+    if (isDebugPGMVisorActive()) {
+        limpiarDebugPGMVisor();
     }
 
     const hudContainer = document.getElementById("r-tree-performance-hud");

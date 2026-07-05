@@ -109,17 +109,30 @@ class PGMIndex:
         Busca la posición predicha para target_key.
         Realiza búsqueda binaria sobre los edges (límites) de los segmentos y aplica el modelo ML del tramo.
         """
+        seg_idx = self.find_segment_index(target_key)
+        if seg_idx < 0:
+            return -1
+        seg = self.segments[seg_idx]
+        pred = seg.predict(target_key)
+        return int(round(pred))
+
+    def find_segment_index(self, target_key: int) -> int:
+        """
+        Devuelve el índice del segmento que contiene la clave `target_key`
+        (búsqueda binaria sobre los edges de los segmentos).
+        Retorna -1 si no hay segmentos.
+        """
         if not self.segments:
             return -1
-            
+
         low = 0
         high = len(self.segments) - 1
         idx = -1
-        
+
         while low <= high:
             mid = (low + high) // 2
             seg = self.segments[mid]
-            
+
             if seg.key <= target_key:
                 if mid == len(self.segments) - 1 or self.segments[mid + 1].key > target_key:
                     idx = mid
@@ -128,19 +141,41 @@ class PGMIndex:
                     low = mid + 1
             else:
                 high = mid - 1
-                
+
         if idx == -1:
             idx = 0
-            
+        return idx
+
+    def get_segment(self, target_key: int) -> dict | None:
+        """
+        Devuelve un dict con toda la información del segmento donde cae `target_key`:
+        - segment_index, key, next_key, slope, intercept, points_count
+        - predicted_position, actual_position (si se provee)
+        """
+        idx = self.find_segment_index(target_key)
+        if idx < 0:
+            return None
         seg = self.segments[idx]
-        pred = seg.predict(target_key)
-        return int(round(pred))
+        predicted = int(round(seg.predict(target_key)))
+        return {
+            "segment_index": idx,
+            "segment_key": seg.key,
+            "segment_next_key": seg.next_key,
+            "slope": seg.slope,
+            "intercept": seg.intercept,
+            "points_count": seg.points_count,
+            "predicted_position": predicted,
+        }
 
     def search_range(self, target_key: int) -> tuple[int, int]:
         """
         Retorna el rango [low, high] físico de búsqueda local garantizado por epsilon.
         """
-        pred = self.search(target_key)
+        seg_idx = self.find_segment_index(target_key)
+        if seg_idx < 0:
+            return 0, 0
+        seg = self.segments[seg_idx]
+        pred = int(round(seg.predict(target_key)))
         low = max(0, pred - self.epsilon)
         high = min(self.num_keys - 1, pred + self.epsilon)
         return low, high

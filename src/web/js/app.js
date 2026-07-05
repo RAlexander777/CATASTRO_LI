@@ -385,30 +385,63 @@ function animarScanner(realDataCallback) {
 async function coldCacheFlush() {
     const cb = document.getElementById("cold-cache-checkbox");
     if (!cb || !cb.checked) return;
+    const t0 = performance.now();
+    const placeholder = document.getElementById("lote-preview-placeholder");
+    const originalText = placeholder ? placeholder.textContent : null;
+    if (placeholder) {
+        placeholder.textContent = "> reiniciando PostgreSQL (~7s)…";
+        placeholder.classList.add("cold-flush-active");
+    }
     try {
-        await fetch("/api/cache/flush", { method: "POST" });
+        const r = await fetch("/api/cache/flush", { method: "POST" });
+        if (!r.ok) {
+            const err = await r.json().catch(() => ({ detail: "Error desconocido" }));
+            throw new Error(err.detail || `HTTP ${r.status}`);
+        }
+        await r.json();
+        const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+        if (placeholder) {
+            placeholder.textContent = `> caché frío listo (${elapsed}s)`;
+            setTimeout(() => {
+                if (placeholder.classList.contains("cold-flush-active")) {
+                    placeholder.textContent = originalText || "> cargando_vista...";
+                    placeholder.classList.remove("cold-flush-active");
+                }
+            }, 600);
+        }
     } catch (e) {
         console.warn("Error al limpiar caché:", e);
+        if (placeholder) {
+            placeholder.textContent = `> error: ${e.message}`;
+            placeholder.classList.remove("cold-flush-active");
+        }
+        throw e;
     }
 }
 
 async function cargarLoteAleatorio() {
     if (isRandomizing) return;
-    await coldCacheFlush();
     isRandomizing = true;
-    
+
+    const diceBtn = document.querySelector(".btn-dice");
+    if (diceBtn) diceBtn.disabled = true;
+
     const debugCheckbox = document.getElementById("debug-mode-checkbox");
     const isDebugActive = debugCheckbox && debugCheckbox.checked;
     if (!isDebugActive) {
         const metadataPanel = document.getElementById("metadata-details-panel");
-        if (metadataPanel) {
-            metadataPanel.classList.add("collapsed");
-        }
+        if (metadataPanel) metadataPanel.classList.add("collapsed");
     }
-    
-    const diceBtn = document.querySelector(".btn-dice");
+
+    try {
+        await coldCacheFlush();
+    } catch (e) {
+        isRandomizing = false;
+        if (diceBtn) diceBtn.disabled = false;
+        return;
+    }
+
     if (diceBtn) {
-        diceBtn.disabled = true;
         diceBtn.classList.add("spinning");
         setTimeout(() => diceBtn.classList.remove("spinning"), 500);
     }
@@ -472,10 +505,15 @@ async function cargarLoteAleatorio() {
 
 async function buscarLotePorId() {
     if (isRandomizing) return;
-    await coldCacheFlush();
-    
+    isRandomizing = true;
+
+    const searchTrigger = document.getElementById("btn-buscar-trigger");
+    if (searchTrigger) searchTrigger.disabled = true;
+
     const idInput = document.getElementById("search-lote-input").value.trim();
     if (!idInput || idInput.length !== 14) {
+        isRandomizing = false;
+        if (searchTrigger) searchTrigger.disabled = false;
         Swal.fire({
             title: '> error_validacion',
             text: 'Por favor ingrese un código catastral válido de 14 dígitos.',
@@ -493,16 +531,20 @@ async function buscarLotePorId() {
         });
         return;
     }
-    
-    isRandomizing = true;
-    
+
+    try {
+        await coldCacheFlush();
+    } catch (e) {
+        isRandomizing = false;
+        if (searchTrigger) searchTrigger.disabled = false;
+        return;
+    }
+
     const debugCheckbox = document.getElementById("debug-mode-checkbox");
     const isDebugActive = debugCheckbox && debugCheckbox.checked;
     if (!isDebugActive) {
         const metadataPanel = document.getElementById("metadata-details-panel");
-        if (metadataPanel) {
-            metadataPanel.classList.add("collapsed");
-        }
+        if (metadataPanel) metadataPanel.classList.add("collapsed");
     }
     
     let fetchResolved = false;
@@ -563,6 +605,7 @@ async function buscarLotePorId() {
         const isDbg = debugCheckbox && debugCheckbox.checked;
         if (!isDbg || errorOccurred) {
             isRandomizing = false;
+            if (searchTrigger) searchTrigger.disabled = false;
         }
     });
     
@@ -948,23 +991,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // Toggle unificado de trazas (R-Tree + PGM)
-    const btnToggleTraces = document.getElementById("btn-toggle-traces");
-    const traceWidgets = document.querySelectorAll(".r-tree-traversal-widget, .pgm-traversal-widget");
-    
-    if (btnToggleTraces && traceWidgets.length) {
-        btnToggleTraces.addEventListener("click", () => {
-            let anyExpanded = false;
-            traceWidgets.forEach(w => {
-                const was = w.classList.toggle("expanded");
-                if (was) anyExpanded = true;
-            });
-            btnToggleTraces.textContent = anyExpanded
-                ? "> ocultar_trazas_busqueda"
-                : "> mostrar_trazas_busqueda";
-        });
-    }
-
     // Manejo de Pestañas del Dashboard
     const tabButtons = document.querySelectorAll(".dashboard-tabs .tab-btn");
     const tabPanes = document.querySelectorAll(".dashboard-tabs-container .tab-pane");
@@ -1039,18 +1065,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         // Actualizar gráficos comparativos reales de eficiencia en RAM
+        // Usar *_bytes del response si están disponibles, si no parsear el string
+        const postgisBytes = (typeof data.postgis_ram_bytes === "number" && data.postgis_ram_bytes > 0)
+            ? data.postgis_ram_bytes
+            : (parseFloat(String(data.postgis_ram || "").replace(/[^0-9.]/g, '')) || 1.0);
+        const pgmBytes = (typeof data.pgm_ram_bytes === "number" && data.pgm_ram_bytes > 0)
+            ? data.pgm_ram_bytes
+            : (parseFloat(String(data.pgm_ram || "").replace(/[^0-9.]/g, '')) || 0.1);
+
         if (document.getElementById("val-postgres-ram") && data.postgis_ram) {
             document.getElementById("val-postgres-ram").textContent = `Consumo: ${data.postgis_ram}`;
         }
         if (document.getElementById("val-learned-ram") && data.pgm_ram) {
-            const postgresBytes = parseFloat(data.postgis_ram.replace(/[^0-9.]/g, '')) || 1.0;
-            const learnedBytes = parseFloat(data.pgm_ram.replace(/[^0-9.]/g, '')) || 0.1;
-            const savings = Math.max(0, Math.round((1 - (learnedBytes / postgresBytes)) * 100));
+            const savings = Math.max(0, Math.round((1 - (pgmBytes / postgisBytes)) * 100));
             document.getElementById("val-learned-ram").textContent = `Consumo: ${data.pgm_ram} (↓ ${savings}%)`;
-            
+
             const barLearned = document.getElementById("bar-learned-fill");
             if (barLearned) {
-                const ratio = Math.max(2, Math.min(100, Math.round((learnedBytes / postgresBytes) * 100)));
+                const ratio = Math.max(2, Math.min(100, Math.round((pgmBytes / postgisBytes) * 100)));
                 barLearned.style.width = `${ratio}%`;
             }
         }
@@ -1147,9 +1179,10 @@ function crearMiniCardSVG(pasoIndex, data, rtreeSearchTimeMs) {
             titleColor = "#a855f7";
             desc = "escaneo nodo raíz";
             svgContent = `
-                <rect x="5" y="5" width="150" height="100" stroke="#a855f7" stroke-width="1.5" fill="rgba(168, 85, 247, 0.05)" stroke-dasharray="4,4"/>
-                <text x="12" y="25" fill="#a855f7" font-size="9px" font-family="monospace" font-weight="bold">MBR N0 (RAÍZ)</text>
-                <text x="12" y="38" fill="rgba(168, 85, 247, 0.4)" font-size="7px" font-family="monospace">Puno macro sector</text>
+                <rect x="10" y="10" width="280" height="120" stroke="#a855f7" stroke-width="2" fill="rgba(168, 85, 247, 0.06)" stroke-dasharray="6,6"/>
+                <text x="20" y="32" fill="#a855f7" font-size="13px" font-family="monospace" font-weight="bold">MBR N0 (RAÍZ)</text>
+                <text x="20" y="52" fill="rgba(168, 85, 247, 0.6)" font-size="11px" font-family="monospace">Puno macro sector · bounding box inicial</text>
+                <text x="20" y="110" fill="rgba(168, 85, 247, 0.5)" font-size="10px" font-family="monospace">↓ desciende a N1</text>
             `;
             metricsHtml = `
                 <div class="debug-step-metrics">
@@ -1165,16 +1198,17 @@ function crearMiniCardSVG(pasoIndex, data, rtreeSearchTimeMs) {
             titleColor = "#06b6d4";
             desc = "poda de sub-ramas";
             svgContent = `
-                <rect x="5" y="5" width="150" height="100" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
-                <rect x="40" y="20" width="80" height="70" stroke="#06b6d4" stroke-width="1.5" fill="rgba(6, 182, 212, 0.06)" stroke-dasharray="3,3"/>
-                <text x="48" y="35" fill="#06b6d4" font-size="9px" font-family="monospace" font-weight="bold">MBR N1</text>
+                <rect x="10" y="10" width="280" height="120" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+                <rect x="60" y="30" width="180" height="90" stroke="#06b6d4" stroke-width="2" fill="rgba(6, 182, 212, 0.08)" stroke-dasharray="4,4"/>
+                <text x="70" y="52" fill="#06b6d4" font-size="13px" font-family="monospace" font-weight="bold">MBR N1 · MANZANA</text>
+                <text x="70" y="70" fill="rgba(6, 182, 212, 0.6)" font-size="11px" font-family="monospace">sub-rama candidata</text>
             `;
             break;
         case 2:
             title = "n2: predio";
             titleColor = "#10b981";
             desc = "registro encontrado";
-            
+
             // Generar el polígono real escalado
             let pointsStr = "";
             if (data && data.geom && data.geom.coordinates && data.geom.coordinates[0]) {
@@ -1187,26 +1221,28 @@ function crearMiniCardSVG(pasoIndex, data, rtreeSearchTimeMs) {
                     if (p[1] < min_y) min_y = p[1];
                     if (p[1] > max_y) max_y = p[1];
                 });
-                
+
                 const w = max_x - min_x;
                 const h = max_y - min_y;
                 const max_dimension = Math.max(w, h) || 1;
-                
-                // Centrar y escalar a 110x70 dentro del área de 160x110
-                const scale = 70 / max_dimension;
-                const offsetX = (160 - w * scale) / 2;
-                const offsetY = (110 - h * scale) / 2;
-                
+
+                // Centrar y escalar a ~200x90 dentro del área de 300x140
+                const scale = 90 / max_dimension;
+                const offsetX = (300 - w * scale) / 2;
+                const offsetY = (140 - h * scale) / 2;
+
                 const scaledPoints = coordinates.map(p => {
                     const x = offsetX + (p[0] - min_x) * scale;
-                    const y = 110 - (offsetY + (p[1] - min_y) * scale); 
+                    const y = 140 - (offsetY + (p[1] - min_y) * scale);
                     return `${x.toFixed(1)},${y.toFixed(1)}`;
                 });
                 pointsStr = scaledPoints.join(" ");
             }
-            
+
             svgContent = `
-                <polygon points="${pointsStr}" stroke="#10b981" stroke-width="1.8" fill="rgba(16, 185, 129, 0.15)"/>
+                <rect x="10" y="10" width="280" height="120" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+                <polygon points="${pointsStr}" stroke="#10b981" stroke-width="2.2" fill="rgba(16, 185, 129, 0.18)"/>
+                <text x="20" y="32" fill="#10b981" font-size="13px" font-family="monospace" font-weight="bold">MBR N2 · PREDIO</text>
             `;
             break;
     }
@@ -1235,7 +1271,7 @@ function crearMiniCardSVG(pasoIndex, data, rtreeSearchTimeMs) {
     return `
         <div class="debug-step-card">
             <span class="debug-step-title" style="color: ${titleColor};">${title}</span>
-            <svg width="160" height="110" style="background: rgba(5,7,12,0.65); border: 1px solid rgba(129,140,248,0.12);">
+            <svg viewBox="0 0 300 140" preserveAspectRatio="xMidYMid meet" style="background: rgba(5,7,12,0.65); border: 1px solid rgba(129,140,248,0.12);">
                 ${svgContent}
             </svg>
             <span class="debug-step-desc">${desc}</span>
@@ -1252,6 +1288,18 @@ function crearMiniCardSVGPGM(pasoIndex, data, stats) {
     let metricsHtml = "";
 
     const searchTime = stats ? Number(stats.learned_search_time_ms).toFixed(3) : "0.025";
+    const seg = (stats && stats.segment) ? stats.segment : null;
+
+    // Helper para formatear la clave HK sin truncar (es un entero grande pero legible)
+    const fmtHilbert = (k) => {
+        if (k === null || k === undefined) return "—";
+        // Mostrar la clave completa sin "..." porque el campo del card ya es ancho
+        return String(k);
+    };
+
+    // Pendiente e intercepto del segmento donde cayó la consulta
+    const fmtSlope = (s) => (s === null || s === undefined) ? "—" : Number(s).toExponential(2);
+    const fmtIntercept = (i) => (i === null || i === undefined) ? "—" : Number(i).toFixed(4);
 
     switch(pasoIndex) {
         case 0:
@@ -1259,15 +1307,17 @@ function crearMiniCardSVGPGM(pasoIndex, data, stats) {
             titleColor = "#34d399";
             desc = "codificación coordenadas";
             svgContent = `
-                <text x="12" y="30" fill="#34d399" font-size="9px" font-family="monospace" font-weight="bold">CURVA HILBERT</text>
-                <line x1="20" y1="50" x2="140" y2="50" stroke="#34d399" stroke-width="0.5" stroke-dasharray="2,2" opacity="0.3"/>
-                <text x="12" y="65" fill="rgba(52, 211, 153, 0.4)" font-size="7px" font-family="monospace">lat→lon→hilbert_key</text>
-                <circle cx="80" cy="45" r="3" fill="#34d399" opacity="0.6"/>
+                <text x="14" y="32" fill="#34d399" font-size="13px" font-family="monospace" font-weight="bold">CURVA HILBERT</text>
+                <line x1="30" y1="78" x2="270" y2="78" stroke="#34d399" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
+                <text x="14" y="100" fill="rgba(52, 211, 153, 0.6)" font-size="11px" font-family="monospace">(x, y) → clave 1D entera</text>
+                <circle cx="150" cy="70" r="6" fill="#34d399" opacity="0.7"/>
+                <circle cx="150" cy="70" r="11" fill="none" stroke="#34d399" stroke-width="0.8" opacity="0.4"/>
             `;
             metricsHtml = `
                 <div class="debug-step-metrics">
-                    <div class="metric-row"><span class="metric-k">CLAVE HK</span><span class="metric-v" style="color:#34d399">${stats && stats.hilbert_key ? stats.hilbert_key.toString().substring(0,12)+"..." : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">CLAVE HK</span><span class="metric-v" style="color:#34d399; font-size: 0.78rem;">${stats && stats.hilbert_key !== undefined ? fmtHilbert(stats.hilbert_key) : "—"}</span></div>
                     <div class="metric-row"><span class="metric-k">MÉTRICA</span><span class="metric-v">Hilbert 1D</span></div>
+                    <div class="metric-row"><span class="metric-k">ORDEN</span><span class="metric-v">24 bits</span></div>
                     <div class="metric-row"><span class="metric-k">ESTADO</span><span class="metric-v success-val">MAPPED</span></div>
                 </div>
             `;
@@ -1275,16 +1325,30 @@ function crearMiniCardSVGPGM(pasoIndex, data, stats) {
         case 1:
             title = "pgm: predicción";
             titleColor = "#06b6d4";
-            desc = "regresión segmentada";
+            desc = "regresión segmentada (PLR)";
+            // SVG más descriptivo: muestra el segmento activo resaltado
             svgContent = `
-                <text x="12" y="25" fill="#06b6d4" font-size="9px" font-family="monospace" font-weight="bold">MODELO PGM</text>
-                <line x1="15" y1="80" x2="145" y2="20" stroke="#06b6d4" stroke-width="1.2" opacity="0.6"/>
-                <circle cx="95" cy="45" r="4" fill="#06b6d4" opacity="0.8"/>
-                <text x="70" y="42" fill="#fff" font-size="6px" font-family="monospace">● pred</text>
+                <text x="14" y="22" fill="#06b6d4" font-size="13px" font-family="monospace" font-weight="bold">MODELO PGM-Index</text>
+                <text x="14" y="42" fill="rgba(6, 182, 212, 0.7)" font-size="11px" font-family="monospace">${seg ? `seg #${seg.segment_index}/${stats.segments_count - 1}` : "—"}${seg ? `  •  ${seg.points_count} pts` : ""}</text>
+                <!-- Eje X: rango de keys -->
+                <line x1="20" y1="120" x2="280" y2="120" stroke="rgba(6,182,212,0.3)" stroke-width="0.8"/>
+                <!-- Línea de regresión -->
+                <line x1="40" y1="115" x2="240" y2="50" stroke="#06b6d4" stroke-width="1.8" opacity="0.85"/>
+                <!-- Punto predicho -->
+                <circle cx="170" cy="70" r="5" fill="#06b6d4"/>
+                <circle cx="170" cy="70" r="9" fill="none" stroke="#06b6d4" stroke-width="0.8" opacity="0.5"/>
+                <text x="180" y="68" fill="#fff" font-size="10px" font-family="monospace">● pos ≈ ${seg ? seg.predicted_position : "—"}</text>
+                <!-- Ecuación del segmento -->
+                ${seg ? `<text x="14" y="62" fill="rgba(6,182,212,0.8)" font-size="10px" font-family="monospace">y = ${fmtSlope(seg.slope)}·x</text>` : ""}
+                ${seg ? `<text x="14" y="78" fill="rgba(6,182,212,0.8)" font-size="10px" font-family="monospace">   + ${fmtIntercept(seg.intercept)}</text>` : ""}
             `;
             metricsHtml = `
                 <div class="debug-step-metrics">
-                    <div class="metric-row"><span class="metric-k">SEGMENTOS</span><span class="metric-v" style="color:#06b6d4">${stats ? stats.segments_count : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">SEGMENTO</span><span class="metric-v" style="color:#06b6d4">${seg ? `#${seg.segment_index} de ${stats.segments_count - 1}` : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">PUNTOS EN SEG</span><span class="metric-v" style="color:#06b6d4">${seg ? seg.points_count : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">SLOPE (a)</span><span class="metric-v">${seg ? fmtSlope(seg.slope) : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">INTERCEPT (b)</span><span class="metric-v">${seg ? fmtIntercept(seg.intercept) : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">POS PREDICHA</span><span class="metric-v" style="color:#06b6d4">${seg ? seg.predicted_position : "—"}</span></div>
                     <div class="metric-row"><span class="metric-k">ERROR ε</span><span class="metric-v">${stats ? stats.epsilon : "—"}</span></div>
                     <div class="metric-row"><span class="metric-k">ESTADO</span><span class="metric-v success-val">PREDICTED</span></div>
                 </div>
@@ -1293,15 +1357,21 @@ function crearMiniCardSVGPGM(pasoIndex, data, stats) {
         case 2:
             title = "bs: búsqueda local";
             titleColor = "#f59e0b";
-            desc = "registro verificado";
+            desc = "verificación binaria [ε]";
             svgContent = `
-                <polygon points="30,15 50,55 10,55" stroke="#f59e0b" stroke-width="1.2" fill="rgba(245, 158, 11, 0.1)" transform="translate(60,20)"/>
-                <text x="80" y="85" fill="#f59e0b" font-size="7px" font-family="monospace">rango [ε]</text>
+                <text x="14" y="22" fill="#f59e0b" font-size="13px" font-family="monospace" font-weight="bold">BÚSQUEDA BINARIA LOCAL</text>
+                <text x="14" y="42" fill="rgba(245, 158, 11, 0.7)" font-size="11px" font-family="monospace">rango ε = ±${stats ? stats.epsilon : "?"} posiciones</text>
+                <!-- Representación del rango -->
+                <line x1="20" y1="78" x2="280" y2="78" stroke="rgba(245,158,11,0.3)" stroke-width="0.8"/>
+                <rect x="100" y="65" width="120" height="26" fill="rgba(245, 158, 11, 0.15)" stroke="#f59e0b" stroke-width="1.5" rx="2"/>
+                <text x="160" y="83" fill="#f59e0b" font-size="12px" font-family="monospace" text-anchor="middle" font-weight="bold">${stats && stats.pgm_search_range ? `[${stats.pgm_search_range[0]}, ${stats.pgm_search_range[1]}]` : "—"}</text>
+                <text x="160" y="115" fill="rgba(245, 158, 11, 0.6)" font-size="10px" font-family="monospace" text-anchor="middle">${stats ? `${stats.binary_steps} iteraciones binarias` : ""}</text>
             `;
             metricsHtml = `
                 <div class="debug-step-metrics">
-                    <div class="metric-row"><span class="metric-k">RANGO BS</span><span class="metric-v" style="color:#f59e0b">${stats && stats.pgm_search_range ? `[${stats.pgm_search_range.join(',')}]` : "—"}</span></div>
-                    <div class="metric-row"><span class="metric-k">PASOS</span><span class="metric-v">${stats ? stats.binary_steps : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">RANGO BS</span><span class="metric-v" style="color:#f59e0b">${stats && stats.pgm_search_range ? `[${stats.pgm_search_range[0]}, ${stats.pgm_search_range[1]}]` : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">ITERACIONES</span><span class="metric-v">${stats ? stats.binary_steps : "—"}</span></div>
+                    <div class="metric-row"><span class="metric-k">POS PRED vs REAL</span><span class="metric-v" style="color:#f59e0b">${seg ? `${seg.predicted_position} → ${seg.actual_position}` : "—"}</span></div>
                     <div class="metric-row"><span class="metric-k">PGM ACC</span><span class="metric-v">${searchTime} ms</span></div>
                     <div class="metric-row"><span class="metric-k">ESTADO</span><span class="metric-v success-val">FOUND</span></div>
                 </div>
@@ -1312,7 +1382,7 @@ function crearMiniCardSVGPGM(pasoIndex, data, stats) {
     return `
         <div class="debug-step-card pgm-debug-card">
             <span class="debug-step-title" style="color: ${titleColor};">${title}</span>
-            <svg width="160" height="110" style="background: rgba(5,7,12,0.65); border: 1px solid rgba(16,185,129,0.15);">
+            <svg viewBox="0 0 300 140" preserveAspectRatio="xMidYMid meet" style="background: rgba(5,7,12,0.65); border: 1px solid rgba(16,185,129,0.15);">
                 ${svgContent}
             </svg>
             <span class="debug-step-desc">${desc}</span>
@@ -1401,29 +1471,57 @@ function ejecutarSimulacionPasoAPaso(data, rtreeSearchTimeMs) {
     const lon = data.center ? data.center.lon : -70.0219;
     fetch(`/api/search/learned?lat=${lat}&lon=${lon}`)
         .then(r => r.ok ? r.json() : null)
-        .then(res => { if (res) learnedStats = res.stats; })
+        .then(res => {
+            if (!res) return;
+            learnedStats = res.stats;
+            // Re-renderizar la card HK (paso 0) con los datos reales del PGM
+            const pgmCells = debugContainer ? debugContainer.querySelector(".pgm-row .stacked-debug-cells") : null;
+            if (pgmCells && pgmCells.firstElementChild) {
+                pgmCells.firstElementChild.outerHTML = crearMiniCardSVGPGM(0, data, learnedStats);
+            }
+            // Actualizar la meta del nodo HK
+            const pgmN0Meta = document.getElementById("pgm-n0-meta");
+            if (pgmN0Meta) {
+                pgmN0Meta.textContent = learnedStats.hilbert_key
+                    ? learnedStats.hilbert_key.toString()
+                    : "hilbert_key";
+            }
+        })
         .catch(() => {});
 
-    // Helper para crear columnas duales
-    function dualRow(rtreeHtml, pgmHtml) {
-        return `<div class="dual-debug-row"><div class="dual-debug-col rtree-col">${rtreeHtml}</div><div class="dual-debug-col pgm-col">${pgmHtml}</div></div>`;
+    // Helper para crear filas horizontales (R-Tree arriba, PGM abajo)
+    function stackedRow(rtreeRow, pgmRow) {
+        return `<div class="stacked-debug-container">
+            <div class="stacked-debug-row-label">R-Tree (GiST)</div>
+            <div class="stacked-debug-row rtree-row">${rtreeRow}</div>
+            <div class="stacked-debug-row-label pgm-row-label">Learned Index (PGM)</div>
+            <div class="stacked-debug-row pgm-row">${pgmRow}</div>
+        </div>`;
+    }
+    function rowCells(cellsHtml) {
+        return `<div class="stacked-debug-cells">${cellsHtml}</div>`;
     }
 
-    // Paso 0: N0 Raíz + HK (t = 0)
+    // Paso 0: N0 Raíz + HK (t = 0) - inicializar contenedor con cards N0 de ambas filas
     if (debugContainer) {
-        debugContainer.innerHTML += dualRow(crearMiniCardSVG(0, data, rtreeSearchTimeMs), crearMiniCardSVGPGM(0, data, null));
+        const rtreeN0 = crearMiniCardSVG(0, data, rtreeSearchTimeMs);
+        const pgmN0 = crearMiniCardSVGPGM(0, data, null);
+        debugContainer.innerHTML = stackedRow(rowCells(rtreeN0), rowCells(pgmN0));
     }
     if (rTreeElements.n0) rTreeElements.n0.classList.add("active-n0");
     if (pgmElements.n0) pgmElements.n0.classList.add("active-pgm-n0");
     const n0Meta = document.getElementById("n0-meta");
     if (n0Meta) n0Meta.textContent = "evaluando...";
-    const pgmN0Meta = document.getElementById("pgm-n0-meta");
-    if (pgmN0Meta) pgmN0Meta.textContent = "evaluando...";
+    const pgmN0MetaInit = document.getElementById("pgm-n0-meta");
+    if (pgmN0MetaInit) pgmN0MetaInit.textContent = "evaluando...";
     
     // Paso 1: N1 Manzana + PGM Predicción (t = 1000ms)
     setTimeout(() => {
         if (debugContainer) {
-            debugContainer.innerHTML += dualRow(crearMiniCardSVG(1, data, rtreeSearchTimeMs), crearMiniCardSVGPGM(1, data, learnedStats));
+            const rtreeCells = debugContainer.querySelector(".rtree-row .stacked-debug-cells");
+            const pgmCells = debugContainer.querySelector(".pgm-row .stacked-debug-cells");
+            if (rtreeCells) rtreeCells.innerHTML += crearMiniCardSVG(1, data, rtreeSearchTimeMs);
+            if (pgmCells) pgmCells.innerHTML += crearMiniCardSVGPGM(1, data, learnedStats);
         }
         if (rTreeElements.c0) rTreeElements.c0.classList.add("active-c0");
         if (rTreeElements.n1) rTreeElements.n1.classList.add("active-n1");
@@ -1449,7 +1547,10 @@ function ejecutarSimulacionPasoAPaso(data, rtreeSearchTimeMs) {
             presTimeEl.style.color = "#a855f7";
         }
         if (debugContainer) {
-            debugContainer.innerHTML += dualRow(crearMiniCardSVG(2, data, rtreeSearchTimeMs), crearMiniCardSVGPGM(2, data, learnedStats));
+            const rtreeCells = debugContainer.querySelector(".rtree-row .stacked-debug-cells");
+            const pgmCells = debugContainer.querySelector(".pgm-row .stacked-debug-cells");
+            if (rtreeCells) rtreeCells.innerHTML += crearMiniCardSVG(2, data, rtreeSearchTimeMs);
+            if (pgmCells) pgmCells.innerHTML += crearMiniCardSVGPGM(2, data, learnedStats);
         }
         if (rTreeElements.c1) rTreeElements.c1.classList.add("active-c1");
         if (rTreeElements.n2) rTreeElements.n2.classList.add("active-n2");
@@ -1466,7 +1567,7 @@ function ejecutarSimulacionPasoAPaso(data, rtreeSearchTimeMs) {
         const pgmN2Meta = document.getElementById("pgm-n2-meta");
         if (pgmN2Meta) pgmN2Meta.textContent = "evaluando...";
     }, 2000);
-    
+
     // Finalización (t = 3000ms)
     setTimeout(() => {
         const n2Meta = document.getElementById("n2-meta");
@@ -1749,6 +1850,286 @@ function activarNodosPGMSecuencial(stats) {
         if (elements.n2) elements.n2.classList.add("active-pgm-n2");
         if (metas.n2 && stats) metas.n2.textContent = `ε=${stats.epsilon}`;
     }, 400);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MODAL OCULTO: BENCHMARK MASIVO (R-Tree vs PGM-Index)
+// Activado por 3 clics sobre el logo en menos de 2 segundos.
+// ═══════════════════════════════════════════════════════════════════
+
+let benchmarkData = null;     // Almacena el resultado completo del benchmark
+let benchmarkIsRunning = false;
+
+// --- Detección de 3 clics sobre el logo ---
+(function setupLogoTripleClick() {
+    const logo = document.getElementById("logo-trigger");
+    if (!logo) return;
+    let clickTimes = [];
+    logo.addEventListener("click", () => {
+        const now = Date.now();
+        clickTimes = clickTimes.filter(t => now - t < 2000);
+        clickTimes.push(now);
+        if (clickTimes.length >= 3) {
+            clickTimes = [];
+            openBenchmarkModal();
+        }
+    });
+})();
+
+function openBenchmarkModal() {
+    const modal = document.getElementById("benchmark-modal");
+    if (!modal) return;
+    benchmarkData = null;
+    // Reset visual
+    document.getElementById("benchmark-summary").style.display = "none";
+    document.getElementById("benchmark-results").style.display = "none";
+    document.getElementById("benchmark-progress").style.display = "none";
+    document.getElementById("benchmark-footer").style.display = "none";
+    document.getElementById("benchmark-run").disabled = false;
+    document.getElementById("benchmark-n").disabled = false;
+    document.getElementById("benchmark-segments").disabled = false;
+    const coldEl = document.getElementById("benchmark-cold");
+    if (coldEl) coldEl.disabled = false;
+    document.getElementById("benchmark-n").value = 100;
+    document.getElementById("benchmark-segments").checked = false;
+    if (coldEl) coldEl.checked = false;
+    modal.style.display = "flex";
+    setTimeout(() => document.getElementById("benchmark-n").focus(), 50);
+}
+
+function closeBenchmarkModal() {
+    const modal = document.getElementById("benchmark-modal");
+    if (modal) modal.style.display = "none";
+}
+
+// --- Cerrar con ESC o con el botón ---
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeBenchmarkModal();
+});
+
+function initBenchmarkControls() {
+    const closeBtn = document.getElementById("benchmark-close");
+    if (closeBtn) closeBtn.addEventListener("click", closeBenchmarkModal);
+
+    const overlay = document.getElementById("benchmark-modal");
+    if (overlay) {
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) closeBenchmarkModal();
+        });
+    }
+
+    const runBtn = document.getElementById("benchmark-run");
+    if (runBtn) runBtn.addEventListener("click", runBenchmark);
+
+    const csvBtn = document.getElementById("benchmark-download-csv");
+    if (csvBtn) csvBtn.addEventListener("click", downloadBenchmarkCSV);
+
+    const jsonBtn = document.getElementById("benchmark-download-json");
+    if (jsonBtn) jsonBtn.addEventListener("click", downloadBenchmarkJSON);
+}
+
+async function runBenchmark() {
+    if (benchmarkIsRunning) return;
+    const nEl = document.getElementById("benchmark-n");
+    const segEl = document.getElementById("benchmark-segments");
+    const coldEl = document.getElementById("benchmark-cold");
+    const n = Math.max(1, Math.min(2000, parseInt(nEl.value, 10) || 100));
+    const includeSegments = !!(segEl && segEl.checked);
+    const coldCache = !!(coldEl && coldEl.checked);
+
+    if (coldCache && n > 200) {
+        const ok = window.confirm(
+            `⚠️ Vas a ejecutar ${n} consultas con caché frío entre cada una.\n\n` +
+            `Esto reiniciará el contenedor PostgreSQL ${n} veces, lo que tomará ` +
+            `aproximadamente ${Math.round(n * 7 / 60)} minutos.\n\n` +
+            `¿Deseas continuar?`
+        );
+        if (!ok) return;
+    }
+
+    benchmarkIsRunning = true;
+    const runBtn = document.getElementById("benchmark-run");
+    if (runBtn) runBtn.disabled = true;
+    nEl.disabled = true;
+    segEl.disabled = true;
+    if (coldEl) coldEl.disabled = true;
+
+    // Mostrar progreso
+    const progress = document.getElementById("benchmark-progress");
+    const progressFill = document.getElementById("benchmark-progress-fill");
+    const progressText = document.getElementById("benchmark-progress-text");
+    const progressCount = document.getElementById("benchmark-progress-count");
+    progress.style.display = "block";
+    progressFill.style.width = "0%";
+    progressText.textContent = coldCache
+        ? `caché frío activo: ~${Math.round(n * 7)}s estimados`
+        : "ejecutando benchmark en el backend…";
+    progressCount.textContent = `0 / ${n}`;
+    document.getElementById("benchmark-summary").style.display = "none";
+    document.getElementById("benchmark-results").style.display = "none";
+    document.getElementById("benchmark-footer").style.display = "none";
+
+    try {
+        // Animación de progreso estimada (porque el backend hace el trabajo en bloque)
+        let pct = 0;
+        const totalEstS = coldCache ? n * 7 : n * 0.5;
+        const startAnim = performance.now();
+        const progressTimer = setInterval(() => {
+            const elapsedS = (performance.now() - startAnim) / 1000;
+            pct = Math.min(95, (elapsedS / totalEstS) * 100);
+            progressFill.style.width = `${pct}%`;
+            progressCount.textContent = `~${Math.round((pct / 100) * n)} / ${n}`;
+        }, 300);
+
+        const t0 = performance.now();
+        const response = await fetch("/api/benchmark", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                n_lots: n,
+                cold_cache: coldCache,
+                include_segment_details: includeSegments,
+            }),
+        });
+        const elapsed = (performance.now() - t0) / 1000;
+
+        clearInterval(progressTimer);
+        progressFill.style.width = "100%";
+        progressCount.textContent = `${n} / ${n}`;
+        progressText.textContent = `completado en ${elapsed.toFixed(2)}s`;
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({ detail: "Error desconocido" }));
+            throw new Error(err.detail || `HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        benchmarkData = data;
+        renderBenchmarkResults(data);
+    } catch (e) {
+        progressText.textContent = `error: ${e.message}`;
+        progressFill.style.background = "linear-gradient(90deg, #ef4444, #b91c1c)";
+    } finally {
+        benchmarkIsRunning = false;
+        if (runBtn) runBtn.disabled = false;
+        nEl.disabled = false;
+        segEl.disabled = false;
+        if (coldEl) coldEl.disabled = false;
+    }
+}
+
+function renderBenchmarkResults(data) {
+    if (!data || !data.summary) return;
+
+    // Resumen
+    const summary = data.summary;
+    const setStat = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+    setStat("stat-rtree-mean",    summary.rtree_ms.mean.toFixed(3));
+    setStat("stat-pgm-mean",      summary.pgm_ms.mean.toFixed(3));
+    setStat("stat-speedup-mean",  summary.speedup_ratio.mean.toFixed(3));
+    setStat("stat-rtree-p99",     summary.rtree_ms.p99.toFixed(3));
+    setStat("stat-pgm-p99",       summary.pgm_ms.p99.toFixed(3));
+    setStat("stat-successful",    summary.successful_n);
+    setStat("stat-requested",     summary.requested_n);
+
+    document.getElementById("benchmark-summary").style.display = "block";
+
+    // Tabla con los primeros 200
+    const tbody = document.getElementById("benchmark-tbody");
+    if (tbody) {
+        tbody.innerHTML = "";
+        const rowsToShow = (data.rows || []).slice(0, 200);
+        for (const r of rowsToShow) {
+            const tr = document.createElement("tr");
+            if (r.pgm_ms < r.rtree_ms) {
+                tr.classList.add("col-pgm-faster");
+            } else {
+                tr.classList.add("col-rtree-faster");
+            }
+            tr.innerHTML = `
+                <td class="mono">${escapeHtml(r.id_lote)}</td>
+                <td class="mono">${r.lat}</td>
+                <td class="mono">${r.lon}</td>
+                <td class="mono">${r.rtree_ms.toFixed(3)}</td>
+                <td class="mono">${r.pgm_ms.toFixed(3)}</td>
+                <td class="mono">${r.speedup.toFixed(3)}×</td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+    document.getElementById("benchmark-results").style.display = "block";
+
+    // Footer
+    const config = data.config || {};
+    const coldTag = config.cold_cache ? " · CACHÉ FRÍO (PG reiniciado entre cada query)" : " · caché tibio (warming natural)";
+    const flushTag = config.cache_flushes_performed
+        ? ` · ${config.cache_flushes_performed} reinicios de PG (${config.total_cache_flush_time_s}s)`
+        : "";
+    const summaryLine = `${summary.successful_n}/${summary.requested_n} consultas`
+        + coldTag
+        + flushTag
+        + ` · rtree p99=${summary.rtree_ms.p99}ms`
+        + ` · pgm p99=${summary.pgm_ms.p99}ms`
+        + ` · speedup medio=${summary.speedup_ratio.mean.toFixed(3)}×`;
+    const footerMsg = document.getElementById("benchmark-footer-msg");
+    if (footerMsg) footerMsg.textContent = summaryLine;
+    document.getElementById("benchmark-footer").style.display = "block";
+}
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function downloadBenchmarkCSV() {
+    if (!benchmarkData || !benchmarkData.rows) return;
+    const cols = benchmarkData.rows[0] && benchmarkData.rows[0].hilbert_key !== undefined
+        ? ["id_lote", "lat", "lon", "rtree_ms", "pgm_ms", "speedup",
+           "hilbert_key", "segment_index", "segment_points", "pgm_binary_steps", "epsilon"]
+        : ["id_lote", "lat", "lon", "rtree_ms", "pgm_ms", "speedup"];
+    const lines = [cols.join(",")];
+    for (const r of benchmarkData.rows) {
+        const row = cols.map(c => {
+            const v = r[c];
+            if (v === null || v === undefined) return "";
+            return typeof v === "string" && v.includes(",") ? `"${v}"` : v;
+        });
+        lines.push(row.join(","));
+    }
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    triggerDownload(blob, `catastro_li_benchmark_${Date.now()}.csv`);
+}
+
+function downloadBenchmarkJSON() {
+    if (!benchmarkData) return;
+    const json = JSON.stringify(benchmarkData, null, 2);
+    const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
+    triggerDownload(blob, `catastro_li_benchmark_${Date.now()}.json`);
+}
+
+function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
+// Inicializar listeners del modal al cargar el DOM
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initBenchmarkControls);
+} else {
+    initBenchmarkControls();
 }
 
 window.buscarLoteUnificado = buscarLoteUnificado;
